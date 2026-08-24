@@ -238,6 +238,7 @@ namespace SaviSchedular.Services
                         Console.WriteLine($"[SaviSchedular] ✗ FAILED: School {schoolId} | {jobTypeCode} | {err}");
                         LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl,
                             (int)response.StatusCode, body, err);
+                        TrySendFailureEmail(schoolId, schoolName, jobTypeCode, fullUrl, err);
                         throw new Exception($"API call failed — {err}");
                     }
                 }
@@ -247,6 +248,9 @@ namespace SaviSchedular.Services
                 Console.WriteLine($"[SaviSchedular] ✗ EXCEPTION: School {schoolId} | {jobTypeCode} | {ex.Message}");
                 if (logId > 0)
                     LoggingService.CompleteExecutionLog(logId, "FAILED", errorMessage: ex.Message);
+                // Send failure email only if not already sent inside the try block
+                if (!ex.Message.StartsWith("API call failed —"))
+                    TrySendFailureEmail(schoolId, schoolName, jobTypeCode, null, ex.Message);
                 throw; // Hangfire retry ke liye rethrow
             }
         }
@@ -331,6 +335,70 @@ namespace SaviSchedular.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"[SaviSchedular] Holiday email error: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // FAILURE EMAIL — Job fail hone par admin ko alert bhejo
+        // ─────────────────────────────────────────────────────────────────────
+        private static void TrySendFailureEmail(long schoolId, string schoolName, string jobTypeCode,
+            string apiUrl, string errorMessage)
+        {
+            try
+            {
+                string host     = GlobalConfigService.Get("SMTPHost",     "email-smtp.ap-south-1.amazonaws.com");
+                int    port     = int.TryParse(GlobalConfigService.Get("SMTPPort", "587"), out int p2) ? p2 : 587;
+                string sender   = GlobalConfigService.Get("SMTPSender",   "info@savischools.com");
+                string username = GlobalConfigService.Get("SMTPUsername", "");
+                string password = GlobalConfigService.Get("SMTPPassword", "");
+                string toEmail  = GlobalConfigService.Get("NotificationEmail", "admin@savischools.com");
+                string failedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                using (var mail = new System.Net.Mail.MailMessage())
+                {
+                    mail.From       = new System.Net.Mail.MailAddress(sender, "SaviSchedular");
+                    mail.To.Add(toEmail);
+                    mail.Subject    = $"[SaviSchedular] ⚠ Job FAILED: {schoolName} (ID: {schoolId}) | {jobTypeCode}";
+                    mail.IsBodyHtml = true;
+                    mail.Body       = $@"
+<html>
+<body style='font-family:Segoe UI,Arial,sans-serif; color:#222; background:#f4f4f4; padding:20px;'>
+  <div style='max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.1);'>
+    <div style='background:#c0392b; padding:20px 30px;'>
+      <h2 style='color:#fff; margin:0;'>⚠ Scheduler Job Failed</h2>
+    </div>
+    <div style='padding:24px 30px;'>
+      <p style='margin-top:0;'>Dear Admin,</p>
+      <p>The following scheduled job has <strong style='color:#c0392b;'>FAILED</strong> and requires your attention.</p>
+      <table style='width:100%; border-collapse:collapse; margin:16px 0;'>
+        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; width:160px; border:1px solid #e0e0e0;'>School Name</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{schoolName}</td></tr>
+        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>School ID</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{schoolId}</td></tr>
+        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>Job Type</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{jobTypeCode}</td></tr>
+        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>Failed At</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{failedAt}</td></tr>
+        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>API URL</td><td style='padding:8px 12px; border:1px solid #e0e0e0; word-break:break-all;'>{(string.IsNullOrEmpty(apiUrl) ? "N/A" : apiUrl)}</td></tr>
+        <tr><td style='padding:8px 12px; background:#fff0f0; font-weight:600; border:1px solid #e0e0e0; color:#c0392b;'>Error</td><td style='padding:8px 12px; background:#fff0f0; border:1px solid #e0e0e0; color:#c0392b;'>{System.Security.SecurityElement.Escape(errorMessage ?? "Unknown error")}</td></tr>
+      </table>
+      <p>Please check the <a href='#' style='color:#2980b9;'>SaviSchedular Admin Dashboard</a> for full logs.</p>
+    </div>
+    <div style='background:#f4f4f4; padding:12px 30px; text-align:center; font-size:12px; color:#888;'>
+      This is an automated alert from SaviSchedular. Do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>";
+
+                    using (var smtp = new System.Net.Mail.SmtpClient(host, port))
+                    {
+                        smtp.Credentials = new System.Net.NetworkCredential(username, password);
+                        smtp.EnableSsl   = true;
+                        smtp.Send(mail);
+                    }
+                }
+                Console.WriteLine($"[SaviSchedular] Failure email sent for School {schoolId} | {jobTypeCode}.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SaviSchedular] Failure email error: {ex.Message}");
             }
         }
     }
