@@ -30,13 +30,16 @@ namespace SaviSchedular.Controllers
                 if (page < 1) page = 1;
                 if (pageSize < 1 || pageSize > 200) pageSize = 20;
 
-                string where = "WHERE 1=1";
-                if (productId.HasValue)             where += " AND el.ProductId = @ProductId";
-                if (clientId.HasValue)              where += " AND el.ClientId  = @ClientId";
-                if (!string.IsNullOrWhiteSpace(status)) where += " AND el.Status = @Status";
-                if (!string.IsNullOrWhiteSpace(q))  where += " AND (el.ClientName LIKE @Q OR el.ExternalId LIKE @Q OR el.JobTypeCode LIKE @Q OR el.ErrorMessage LIKE @Q)";
-
                 int offset = (page - 1) * pageSize;
+                var p = new DynamicParameters();
+                p.Add("Offset", offset);
+                p.Add("PageSize", pageSize);
+
+                string where = "WHERE 1=1";
+                if (productId.HasValue)             { where += " AND el.ProductId = @ProductId"; p.Add("ProductId", productId.Value); }
+                if (clientId.HasValue)              { where += " AND el.ClientId  = @ClientId";  p.Add("ClientId", clientId.Value); }
+                if (!string.IsNullOrWhiteSpace(status)) { where += " AND el.Status = @Status"; p.Add("Status", status); }
+                if (!string.IsNullOrWhiteSpace(q))      { where += " AND (el.ClientName LIKE @Q OR el.ExternalId LIKE @Q OR el.JobTypeCode LIKE @Q OR el.ErrorMessage LIKE @Q)"; p.Add("Q", "%" + q.Trim() + "%"); }
 
                 using (var conn = new SqlConnection(ConnStr))
                 {
@@ -45,11 +48,8 @@ namespace SaviSchedular.Controllers
                     string logSql = "SELECT el.*, p.ProductName FROM SchedulerExecutionLogs el LEFT JOIN Products p ON p.ProductId = el.ProductId " + where + " ORDER BY el.StartedAt DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
                     string countSql = "SELECT COUNT(1) FROM SchedulerExecutionLogs el " + where;
 
-                    var logs = conn.Query(logSql,
-                        new { ProductId = productId, ClientId = clientId, Status = status, Q = "%" + q + "%", Offset = offset, PageSize = pageSize }).AsList();
-
-                    int total = conn.ExecuteScalar<int>(countSql,
-                        new { ProductId = productId, ClientId = clientId, Status = status, Q = "%" + q + "%" });
+                    var logs = conn.Query(logSql, p).AsList();
+                    int total = conn.ExecuteScalar<int>(countSql, p);
 
                     return Request.CreateResponse(HttpStatusCode.OK, new {
                         logs, total, page, pageSize,

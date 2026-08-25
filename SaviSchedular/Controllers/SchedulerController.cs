@@ -58,15 +58,14 @@ namespace SaviSchedular.Controllers
                             ORDER BY StartedAt DESC
                         ) lastLog
                         WHERE 1=1";
-                    if (productId.HasValue) sql += " AND ji.ProductId = @ProductId";
-                    if (clientId.HasValue)  sql += " AND ji.ClientId  = @ClientId";
-                    if (isActive.HasValue)  sql += " AND ji.IsActive  = @IsActive";
-                    if (!string.IsNullOrWhiteSpace(q))
-                        sql += " AND (pc.ClientName LIKE @Q OR pc.ExternalId LIKE @Q OR jt.JobTypeName LIKE @Q)";
+                    var p = new DynamicParameters();
+                    if (productId.HasValue) { sql += " AND ji.ProductId = @ProductId"; p.Add("ProductId", productId.Value); }
+                    if (clientId.HasValue)  { sql += " AND ji.ClientId  = @ClientId";  p.Add("ClientId", clientId.Value); }
+                    if (isActive.HasValue)  { sql += " AND ji.IsActive  = @IsActive";  p.Add("IsActive", isActive.Value); }
+                    if (!string.IsNullOrWhiteSpace(q)) { sql += " AND (pc.ClientName LIKE @Q OR pc.ExternalId LIKE @Q OR jt.JobTypeName LIKE @Q)"; p.Add("Q", $"%{q.Trim()}%"); }
                     sql += " ORDER BY p.ProductName, pc.ClientName, jt.JobTypeName";
 
-                    var list = conn.Query<SchedulerJobInstanceModel>(sql,
-                        new { ProductId = productId, ClientId = clientId, IsActive = isActive, Q = $"%{q}%" }).AsList();
+                    var list = conn.Query<SchedulerJobInstanceModel>(sql, p).AsList();
                     // Mask tokens
                     foreach (var item in list)
                     {
@@ -259,23 +258,31 @@ namespace SaviSchedular.Controllers
 
                     // Build filter
                     string where = "WHERE 1=1";
-                    if (!string.IsNullOrWhiteSpace(q))
-                        where += " AND (el.ClientName LIKE @Q OR el.ExternalId LIKE @Q OR el.JobTypeCode LIKE @Q)";
-                    if (!string.IsNullOrWhiteSpace(status))
-                        where += " AND el.Status = @Status";
-                    if (productId.HasValue)
-                        where += " AND el.ProductId = @ProductId";
+                    var p = new DynamicParameters();
+                    p.Add("Offset", offset);
+                    p.Add("PageSize", pageSize);
 
-                    int offset = (page - 1) * pageSize;
+                    if (!string.IsNullOrWhiteSpace(q))
+                    {
+                        where += " AND (el.ClientName LIKE @Q OR el.ExternalId LIKE @Q OR el.JobTypeCode LIKE @Q)";
+                        p.Add("Q", "%" + q.Trim() + "%");
+                    }
+                    if (!string.IsNullOrWhiteSpace(status))
+                    {
+                        where += " AND el.Status = @Status";
+                        p.Add("Status", status);
+                    }
+                    if (productId.HasValue)
+                    {
+                        where += " AND el.ProductId = @ProductId";
+                        p.Add("ProductId", productId.Value);
+                    }
 
                     string logSql = "SELECT el.LogId, el.ClientName, el.ExternalId, el.JobTypeCode, el.TriggerType, el.StartedAt, el.CompletedAt, el.DurationSeconds, el.Status, el.ErrorMessage, el.HttpStatusCode, el.ProductId, p.ProductName FROM SchedulerExecutionLogs el LEFT JOIN Products p ON p.ProductId = el.ProductId " + where + " ORDER BY el.StartedAt DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
                     string countSql = "SELECT COUNT(1) FROM SchedulerExecutionLogs el " + where;
 
-                    var recentLogs = conn.Query(logSql,
-                        new { Q = "%" + q + "%", Status = status, ProductId = productId, Offset = offset, PageSize = pageSize }).AsList();
-
-                    int total = conn.ExecuteScalar<int>(countSql,
-                        new { Q = "%" + q + "%", Status = status, ProductId = productId });
+                    var recentLogs = conn.Query(logSql, p).AsList();
+                    int total = conn.ExecuteScalar<int>(countSql, p);
 
                     int totalPages = (int)Math.Ceiling((double)total / pageSize);
 

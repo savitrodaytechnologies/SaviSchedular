@@ -35,11 +35,12 @@ namespace SaviSchedular.Controllers
                         FROM ProductJobTypes jt
                         JOIN Products p ON p.ProductId = jt.ProductId
                         WHERE 1=1";
-                    if (productId.HasValue) sql += " AND jt.ProductId = @ProductId";
-                    if (!string.IsNullOrWhiteSpace(q)) sql += " AND (jt.JobTypeCode LIKE @Q OR jt.JobTypeName LIKE @Q OR jt.DefaultApiPath LIKE @Q)";
+                    var p = new DynamicParameters();
+                    if (productId.HasValue) { sql += " AND jt.ProductId = @ProductId"; p.Add("ProductId", productId.Value); }
+                    if (!string.IsNullOrWhiteSpace(q)) { sql += " AND (jt.JobTypeCode LIKE @Q OR jt.JobTypeName LIKE @Q OR jt.DefaultApiPath LIKE @Q)"; p.Add("Q", $"%{q.Trim()}%"); }
                     sql += " ORDER BY p.ProductName, jt.JobTypeName";
 
-                    var list = conn.Query<ProductJobTypeModel>(sql, new { ProductId = productId, Q = $"%{q}%" }).AsList();
+                    var list = conn.Query<ProductJobTypeModel>(sql, p).AsList();
                     return Request.CreateResponse(HttpStatusCode.OK, list);
                 }
             }

@@ -35,12 +35,12 @@ namespace SaviSchedular.Controllers
                         FROM ProductClients pc
                         JOIN Products p ON p.ProductId = pc.ProductId
                         WHERE 1=1";
-                    if (productId.HasValue) sql += " AND pc.ProductId = @ProductId";
-                    if (!string.IsNullOrWhiteSpace(q)) sql += " AND (pc.ClientName LIKE @Q OR pc.ExternalId LIKE @Q)";
+                    var p = new DynamicParameters();
+                    if (productId.HasValue) { sql += " AND pc.ProductId = @ProductId"; p.Add("ProductId", productId.Value); }
+                    if (!string.IsNullOrWhiteSpace(q)) { sql += " AND (pc.ClientName LIKE @Q OR pc.ExternalId LIKE @Q)"; p.Add("Q", $"%{q.Trim()}%"); }
                     sql += " ORDER BY p.ProductName, pc.ClientName";
 
-                    var list = conn.Query<ProductClientModel>(sql,
-                        new { ProductId = productId, Q = $"%{q}%" }).AsList();
+                    var list = conn.Query<ProductClientModel>(sql, p).AsList();
                     return Request.CreateResponse(HttpStatusCode.OK, list);
                 }
             }
