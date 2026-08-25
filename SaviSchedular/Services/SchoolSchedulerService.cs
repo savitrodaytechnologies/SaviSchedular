@@ -190,6 +190,15 @@ namespace SaviSchedular.Services
                     inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
                     inst.CustomApiToken ?? inst.ApiToken);
 
+                // Strict Security Rule: Without valid token, NO API call is allowed
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    string noTokenError = "Security Violation: API execution blocked because no authentication token or security credentials were provided.";
+                    Console.WriteLine($"[SaviSchedular v2] ✗ REJECTED: Instance {instanceId} | {noTokenError}");
+                    LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl, 401, null, noTokenError, payloadSent: payloadJson);
+                    throw new Exception(noTokenError);
+                }
+
                 // Enforce HTTPS check for remote URLs when using JWT/OAuth2 authentication
                 if ((authType == "OAuth2" || authType == "Bearer") && 
                     !fullUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && 
