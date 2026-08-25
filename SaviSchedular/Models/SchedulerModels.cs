@@ -287,4 +287,54 @@ namespace SaviSchedular.Models
         public int            PageSize   { get; set; }
         public int            TotalPages { get; set; }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUTH & USER MANAGEMENT MODELS
+    // ═══════════════════════════════════════════════════════════════
+
+    public class AdminUserModel
+    {
+        public int       UserId       { get; set; }
+        public string    Username     { get; set; }
+        public string    PasswordHash { get; set; }
+        public string    Salt         { get; set; }
+        public string    FullName     { get; set; }
+        public string    Email        { get; set; }
+        public string    Role         { get; set; }
+        public bool      IsActive     { get; set; }
+        public DateTime  CreatedAt    { get; set; }
+        public DateTime? LastLoginAt  { get; set; }
+    }
+
+    public class LoginRequest
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+
+    public class LoginResponse
+    {
+        public string Token    { get; set; }
+        public int    UserId   { get; set; }
+        public string Username { get; set; }
+        public string FullName { get; set; }
+        public string Role     { get; set; }
+    }
+
+    public class SaveAdminUserRequest
+    {
+        public int    UserId   { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string FullName { get; set; }
+        public string Email    { get; set; }
+        public string Role     { get; set; }
+        public bool   IsActive { get; set; }
+    }
+
+    public class ResetPasswordRequest
+    {
+        public int    UserId      { get; set; }
+        public string NewPassword { get; set; }
+    }
 }

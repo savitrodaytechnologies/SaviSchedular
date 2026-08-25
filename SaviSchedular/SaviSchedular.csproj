@@ -101,6 +101,8 @@
     <Compile Include="Controllers\ApiClientsController.cs" />
     <Compile Include="Controllers\ExternalSchedulerController.cs" />
     <Compile Include="Controllers\AdminController.cs" />
+    <Compile Include="Controllers\AdminUsersController.cs" />
+    <Compile Include="Controllers\AuthController.cs" />
     <Compile Include="Controllers\GlobalConfigController.cs" />
     <Compile Include="Controllers\LogsController.cs" />
     <!-- Models -->
@@ -126,6 +128,9 @@
     <Content Include="packages.config" />
     <!-- Admin UI -->
     <Content Include="admin.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="login.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <!-- External API Docs -->

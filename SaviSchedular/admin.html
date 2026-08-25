@@ -346,6 +346,9 @@ textarea{resize:vertical;min-height:80px}
   </div>
 
   <div class="sidebar-section">Logs & Security</div>
+  <div class="nav-item" onclick="showPage('users')" id="nav-users">
+    <span class="icon">🔐</span> Admin Users
+  </div>
   <div class="nav-item" onclick="showPage('logs')" id="nav-logs">
     <span class="icon">📜</span> Execution Logs
   </div>
@@ -358,22 +361,28 @@ textarea{resize:vertical;min-height:80px}
     <span class="icon">🛠️</span> Global Settings
   </div>
   <div class="nav-item" onclick="window.open('/hangfire','_blank')">
-    <span class="icon">🔧</span> Hangfire Jobs
+    <span class="icon">🔥</span> Hangfire Dashboard ↗
   </div>
 
   <div class="sidebar-footer">SaviSchedular v2.0 &copy; 2026</div>
 </nav>
 
-<!-- ══ MAIN ══ -->
-<div class="main">
-  <div class="header">
+<!-- ══ MAIN CONTENT AREA ══ -->
+<main class="main-content">
+  <div class="topbar">
     <div class="header-left">
       <h2 id="page-title">Dashboard</h2>
       <p id="page-subtitle">Overview of all scheduled jobs and activity</p>
     </div>
-    <div class="header-right">
+    <div class="header-right" style="display:flex;align-items:center;gap:12px">
+      <div id="user-profile-badge" style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:4px 12px;border-radius:20px;font-size:13px;border:1px solid #cbd5e1">
+        <span style="font-size:16px">👤</span>
+        <span id="user-display-name" style="font-weight:600;color:#1e293b">Admin</span>
+        <span id="user-display-role" class="badge badge-running" style="font-size:10px;text-transform:uppercase">SuperAdmin</span>
+      </div>
       <button class="btn-refresh" onclick="refreshCurrentPage()">🔄 Refresh</button>
       <a href="/hangfire" target="_blank" class="btn btn-secondary btn-sm">Hangfire ↗</a>
+      <button class="btn btn-danger btn-sm" onclick="handleLogout()" style="margin-left:4px">🚪 Logout</button>
     </div>
   </div>
 
@@ -514,6 +523,22 @@ textarea{resize:vertical;min-height:80px}
           <table>
             <thead><tr><th>#</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Time</th><th>Timezone</th><th>Last Run Status</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="schedules-body"><tr class="loading-row"><td colspan="10"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN USERS ══ -->
+    <div class="page" id="page-users">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Admin Users</div><div class="card-subtitle">Manage login facility accounts, roles, and administrative access</div></div>
+          <button class="btn btn-primary" onclick="openUserModal()">+ Add Admin User</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+            <tbody id="users-body"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -918,6 +943,56 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- Admin User Modal -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="user-modal-title">Add Admin User</span>
+      <button class="modal-close" onclick="closeModal('modal-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="u-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Username *</label>
+          <input type="text" id="u-username" placeholder="e.g. jdoe">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="u-role">
+            <option value="SuperAdmin">SuperAdmin</option>
+            <option value="Admin" selected>Admin</option>
+            <option value="Viewer">Viewer</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="u-fullname" placeholder="e.g. John Doe">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="u-email" placeholder="john@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password <span id="u-pwd-hint" style="font-weight:400;color:#64748b">(required for new user)</span></label>
+        <input type="password" id="u-password" placeholder="•••••••• (leave blank to keep existing)">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="u-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -927,9 +1002,43 @@ let currentPage = 'dashboard';
 let dashPage = 1, logsPage = 1;
 
 // ═══════════════════════════════════════════════════════════════
+// AUTH GUARD & SESSION
+// ═══════════════════════════════════════════════════════════════
+function checkAuthSession() {
+  const sessionStr = localStorage.getItem('savi_schedular_session') || sessionStorage.getItem('savi_schedular_session');
+  if (!sessionStr) {
+    window.location.href = '/login.html';
+    return null;
+  }
+  try {
+    const session = JSON.parse(sessionStr);
+    if (!session || !session.token) {
+      window.location.href = '/login.html';
+      return null;
+    }
+    const nameEl = document.getElementById('user-display-name');
+    const roleEl = document.getElementById('user-display-role');
+    if (nameEl) nameEl.textContent = session.fullName || session.username || 'Admin';
+    if (roleEl) roleEl.textContent = session.role || 'Admin';
+    return session;
+  } catch {
+    window.location.href = '/login.html';
+    return null;
+  }
+}
+
+function handleLogout() {
+  if (!confirm('Are you sure you want to log out?')) return;
+  localStorage.removeItem('savi_schedular_session');
+  sessionStorage.removeItem('savi_schedular_session');
+  window.location.href = '/login.html';
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  checkAuthSession();
   loadProducts().then(() => {
     loadDashboard(1);
     populateProductDropdowns();
@@ -945,12 +1054,14 @@ const pageTitles = {
   jobtypes:  ['Job Types', 'Define job types per product'],
   clients:   ['Clients', 'Schools / clients registered under products'],
   schedules: ['Schedules', 'Job schedule instances per client'],
+  users:     ['Admin Users', 'Manage login facility accounts, roles, and administrative access'],
   logs:      ['Execution Logs', 'Full history of all job runs'],
   apiclients:['API Keys', 'External project API key management'],
   settings:  ['Global Settings', 'SMTP, notifications and system settings'],
 };
 
 function showPage(name) {
+  checkAuthSession();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`page-${name}`)?.classList.add('active');
@@ -964,6 +1075,7 @@ function showPage(name) {
   if (name === 'jobtypes')   loadJobTypes();
   if (name === 'clients')    loadClients();
   if (name === 'schedules')  loadSchedules();
+  if (name === 'users')      loadUsersTable();
   if (name === 'logs')       loadLogs(1);
   if (name === 'apiclients') loadApiClients();
   if (name === 'settings')   loadSettings();
@@ -975,10 +1087,19 @@ function refreshCurrentPage() { showPage(currentPage); }
 // API HELPERS
 // ═══════════════════════════════════════════════════════════════
 async function api(method, url, body) {
-  const opts = { method, headers: {'Content-Type':'application/json'} };
+  const session = checkAuthSession();
+  const headers = { 'Content-Type': 'application/json' };
+  if (session && session.token) {
+    headers['Authorization'] = 'Bearer ' + session.token;
+  }
+  const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch(url, opts);
   const data = await r.json().catch(() => ({}));
+  if (r.status === 401) {
+    handleLogout();
+    throw new Error('Session expired. Please login again.');
+  }
   if (!r.ok) throw new Error(data.error || data.message || `HTTP ${r.status}`);
   return data;
 }
@@ -1460,6 +1581,75 @@ async function deleteSchedule(id) {
   if (!confirm('Delete this schedule?')) return;
   try { await api('DELETE', `/api/scheduler/${id}`); toast('Deleted!'); loadSchedules(); }
   catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN USERS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+async function loadUsersTable() {
+  try {
+    const data = await api('GET', '/api/users');
+    const rows = data.map((u,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><b>${u.username}</b></td>
+        <td>${u.fullName}</td>
+        <td>${u.email||'—'}</td>
+        <td><span class="badge ${u.role==='SuperAdmin'?'badge-running':'badge-skipped'}">${u.role}</span></td>
+        <td>${u.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td style="font-size:12px;color:#64748b">${u.lastLoginAt?new Date(u.lastLoginAt).toLocaleString():'Never'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editUser(${u.userId},${JSON.stringify(u).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.userId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('users-body').innerHTML = rows || emptyRow(8, 'No admin users');
+  } catch(e) { document.getElementById('users-body').innerHTML = emptyRow(8, e.message, true); }
+}
+
+function openUserModal(u) {
+  document.getElementById('u-id').value = u?.userId||0;
+  document.getElementById('u-username').value = u?.username||'';
+  document.getElementById('u-fullname').value = u?.fullName||'';
+  document.getElementById('u-email').value = u?.email||'';
+  document.getElementById('u-role').value = u?.role||'Admin';
+  document.getElementById('u-password').value = '';
+  document.getElementById('u-active').checked = u ? u.isActive : true;
+  document.getElementById('user-modal-title').textContent = u ? 'Edit Admin User' : 'Add Admin User';
+  document.getElementById('u-pwd-hint').textContent = u ? '(leave blank to keep existing)' : '(required for new user)';
+  openModal('modal-user');
+}
+
+function editUser(id, u) { openUserModal(u); }
+
+async function saveUser() {
+  const body = {
+    userId: +document.getElementById('u-id').value,
+    username: document.getElementById('u-username').value.trim(),
+    fullName: document.getElementById('u-fullname').value.trim(),
+    email: document.getElementById('u-email').value.trim(),
+    role: document.getElementById('u-role').value,
+    password: document.getElementById('u-password').value.trim(),
+    isActive: document.getElementById('u-active').checked
+  };
+  if (!body.username || !body.fullName) return toast('Username and Full Name are required','error');
+  if (body.userId === 0 && !body.password) return toast('Password is required for new users','error');
+
+  try {
+    await api('POST', '/api/users/save', body);
+    toast('Admin user saved!');
+    closeModal('modal-user');
+    loadUsersTable();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Deactivate this admin user account?')) return;
+  try {
+    await api('DELETE', `/api/users/${id}`);
+    toast('User deactivated!');
+    loadUsersTable();
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 // ═══════════════════════════════════════════════════════════════
