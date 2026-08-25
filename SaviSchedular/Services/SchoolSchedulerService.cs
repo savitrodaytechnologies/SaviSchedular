@@ -174,9 +174,7 @@ namespace SaviSchedular.Services
                 string payloadJson = BuildPayload(inst);
 
                 // ── Step 7: Resolve auth token ────────────────────────────────
-                string token      = !string.IsNullOrEmpty(inst.CustomApiToken) ? inst.CustomApiToken
-                                  : !string.IsNullOrEmpty(inst.ApiToken) ? inst.ApiToken
-                                  : ConfigurationManager.AppSettings["SaviSchedularToken"];
+                string token      = inst.CustomApiToken ?? inst.ApiToken;
                 string tokenType  = inst.TokenType      ?? "Bearer";
                 string headerName = inst.TokenHeaderName ?? "Authorization";
 
