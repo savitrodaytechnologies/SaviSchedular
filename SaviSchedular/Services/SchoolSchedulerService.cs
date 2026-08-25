@@ -123,7 +123,7 @@ namespace SaviSchedular.Services
                     return;
                 }
 
-                // ── Step 4: Misfire check (scheduled runs only) ───────────────
+                // ── Step 4: Scheduled Run Checks (scheduled runs only) ─────────
                 if (!isManual)
                 {
                     var tz       = SafeGetTimezone(inst.TimeZone);
@@ -131,23 +131,29 @@ namespace SaviSchedular.Services
                     var scheduled= nowLocal.Date.AddHours(inst.ScheduledHour).AddMinutes(inst.ScheduledMinute);
                     double gapMin= Math.Abs((nowLocal - scheduled).TotalMinutes);
 
-                    if (gapMin > inst.MisfireThresholdMinutes)
+                    // Tight misfire check: if gap is > 3 minutes, skip late run
+                    if (gapMin > 3)
                     {
                         Console.WriteLine($"[SaviSchedular v2] MISFIRE SKIP: Instance {instanceId}. Gap {gapMin:F1}m.");
-                        LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "MISFIRE");
+                        LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: $"MISFIRE (Gap {gapMin:F1}m)");
                         return;
                     }
 
-                    // Check if already successfully executed today (prevents duplicate runs on app restart)
+                    // Check if already executed or running today (using C# local date range to prevent RDS timezone mismatch)
                     using (var conn = new SqlConnection(SchedConn))
                     {
+                        DateTime todayStart = DateTime.Now.Date;
+                        DateTime todayEnd   = todayStart.AddDays(1);
+
                         bool alreadyRanToday = conn.ExecuteScalar<bool>(@"
                             SELECT CASE WHEN EXISTS (
                                 SELECT 1 FROM SchedulerExecutionLogs
                                 WHERE InstanceId = @InstanceId
-                                  AND Status = 'SUCCESS'
-                                  AND CAST(StartedAt AS DATE) = CAST(GETDATE() AS DATE)
-                            ) THEN 1 ELSE 0 END", new { InstanceId = instanceId });
+                                  AND Status IN ('SUCCESS', 'RUNNING')
+                                  AND StartedAt >= @TodayStart AND StartedAt < @TodayEnd
+                                  AND LogId != @CurrentLogId
+                            ) THEN 1 ELSE 0 END",
+                            new { InstanceId = instanceId, TodayStart = todayStart, TodayEnd = todayEnd, CurrentLogId = logId });
 
                         if (alreadyRanToday)
                         {
