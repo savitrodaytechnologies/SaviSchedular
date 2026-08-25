@@ -137,6 +137,25 @@ namespace SaviSchedular.Services
                         LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "MISFIRE");
                         return;
                     }
+
+                    // Check if already successfully executed today (prevents duplicate runs on app restart)
+                    using (var conn = new SqlConnection(SchedConn))
+                    {
+                        bool alreadyRanToday = conn.ExecuteScalar<bool>(@"
+                            SELECT CASE WHEN EXISTS (
+                                SELECT 1 FROM SchedulerExecutionLogs
+                                WHERE InstanceId = @InstanceId
+                                  AND Status = 'SUCCESS'
+                                  AND CAST(StartedAt AS DATE) = CAST(GETDATE() AS DATE)
+                            ) THEN 1 ELSE 0 END", new { InstanceId = instanceId });
+
+                        if (alreadyRanToday)
+                        {
+                            Console.WriteLine($"[SaviSchedular v2] ALREADY EXECUTED TODAY: Instance {instanceId}. Skipping duplicate run.");
+                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "ALREADY_EXECUTED_TODAY");
+                            return;
+                        }
+                    }
                 }
 
                 // ── Step 5: Build final URL ───────────────────────────────────
