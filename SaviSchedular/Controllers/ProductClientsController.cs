@@ -36,8 +36,16 @@ namespace SaviSchedular.Controllers
                         JOIN Products p ON p.ProductId = pc.ProductId
                         WHERE 1=1";
                     var p = new DynamicParameters();
-                    if (productId.HasValue) { sql += " AND pc.ProductId = @ProductId"; p.Add("ProductId", productId.Value); }
-                    if (!string.IsNullOrWhiteSpace(q)) { sql += " AND (pc.ClientName LIKE @Q OR pc.ExternalId LIKE @Q)"; p.Add("Q", $"%{q.Trim()}%"); }
+                    if (productId.HasValue && productId.Value > 0)
+                    {
+                        sql += " AND pc.ProductId = @ProductId";
+                        p.Add("ProductId", productId.Value);
+                    }
+                    if (!string.IsNullOrWhiteSpace(q))
+                    {
+                        sql += " AND (pc.ClientName LIKE @Q OR pc.ExternalId LIKE @Q)";
+                        p.Add("Q", "%" + q.Trim() + "%");
+                    }
                     sql += " ORDER BY p.ProductName, pc.ClientName";
 
                     var list = conn.Query<ProductClientModel>(sql, p).AsList();

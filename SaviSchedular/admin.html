@@ -1059,8 +1059,12 @@ function populateProductDropdowns() {
 // ═══════════════════════════════════════════════════════════════
 async function loadJobTypes() {
   const pid = document.getElementById('jt-product-filter')?.value;
+  const q   = document.getElementById('jt-q')?.value;
   try {
-    const data = await api('GET', `/api/jobtypes${pid?`?productId=${pid}`:''}`);
+    let url = '/api/jobtypes?';
+    if (pid) url += `productId=${pid}&`;
+    if (q)   url += `q=${encodeURIComponent(q)}&`;
+    const data = await api('GET', url);
     const rows = data.map((jt,i) => `
       <tr>
         <td>${i+1}</td>
@@ -1186,8 +1190,12 @@ async function deleteClient(id) {
 // ═══════════════════════════════════════════════════════════════
 async function loadSchedules() {
   const pid = document.getElementById('sc-product-filter')?.value;
+  const q   = document.getElementById('sc-q')?.value;
   try {
-    const data = await api('GET', `/api/scheduler${pid?`?productId=${pid}`:''}`);
+    let url = '/api/scheduler?';
+    if (pid) url += `productId=${pid}&`;
+    if (q)   url += `q=${encodeURIComponent(q)}&`;
+    const data = await api('GET', url);
     
     // Check if any job is currently running
     const runningJob = data.find(s => s.lastStatus === 'RUNNING');

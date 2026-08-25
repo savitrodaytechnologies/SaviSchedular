@@ -36,8 +36,16 @@ namespace SaviSchedular.Controllers
                         JOIN Products p ON p.ProductId = jt.ProductId
                         WHERE 1=1";
                     var p = new DynamicParameters();
-                    if (productId.HasValue) { sql += " AND jt.ProductId = @ProductId"; p.Add("ProductId", productId.Value); }
-                    if (!string.IsNullOrWhiteSpace(q)) { sql += " AND (jt.JobTypeCode LIKE @Q OR jt.JobTypeName LIKE @Q OR jt.DefaultApiPath LIKE @Q)"; p.Add("Q", $"%{q.Trim()}%"); }
+                    if (productId.HasValue && productId.Value > 0)
+                    {
+                        sql += " AND jt.ProductId = @ProductId";
+                        p.Add("ProductId", productId.Value);
+                    }
+                    if (!string.IsNullOrWhiteSpace(q))
+                    {
+                        sql += " AND (jt.JobTypeCode LIKE @Q OR jt.JobTypeName LIKE @Q OR jt.DefaultApiPath LIKE @Q)";
+                        p.Add("Q", "%" + q.Trim() + "%");
+                    }
                     sql += " ORDER BY p.ProductName, jt.JobTypeName";
 
                     var list = conn.Query<ProductJobTypeModel>(sql, p).AsList();
@@ -46,7 +54,7 @@ namespace SaviSchedular.Controllers
             }
             catch (Exception ex)
             {
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, new { error = ex.Message });
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new { error = ex.Message, details = ex.ToString() });
             }
         }
 
