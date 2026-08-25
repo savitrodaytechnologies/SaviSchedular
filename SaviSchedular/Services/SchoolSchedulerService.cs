@@ -351,10 +351,11 @@ namespace SaviSchedular.Services
                 conn.Open();
                 return conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(@"
                     SELECT
-                        ji.*,
+                        ji.InstanceId, ji.ClientId, ji.ProductId, ji.JobTypeId, ji.CustomApiPath, ji.CustomApiToken, ji.PayloadJson,
+                        ji.ScheduledHour, ji.ScheduledMinute, ji.TimeZone, ji.IsActive, ji.RunOnHolidays, ji.MisfireThresholdMinutes, ji.LastStatus, ji.LastRunAt, ji.CreatedAt, ji.UpdatedAt, ji.CreatedBy,
                         pc.ClientName, pc.ExternalId, pc.CustomBaseUrl,
                         p.ProductName, p.ProductCode, p.BaseUrl, p.ApiToken, p.TokenType, p.TokenHeaderName,
-                        p.AuthType, p.TokenUrl, p.ClientId, p.ClientSecret, p.RsaPrivateKey, p.RsaPublicKey, p.Audience, p.Issuer,
+                        p.AuthType, p.TokenUrl, p.ClientId AS OAuthClientId, p.ClientSecret, p.RsaPrivateKey, p.RsaPublicKey, p.Audience, p.Issuer,
                         jt.JobTypeCode, jt.JobTypeName, jt.DefaultApiPath, jt.HttpMethod
                     FROM SchedulerJobInstances ji
                     JOIN ProductClients pc  ON pc.ClientId  = ji.ClientId
