@@ -21,6 +21,20 @@ namespace SaviSchedular.Controllers
                 ? ((System.Web.HttpContextWrapper)Request.Properties["MS_HttpContext"]).Request.UserHostAddress
                 : "unknown");
 
+        private static void EnsureJobTypesSchema(SqlConnection conn)
+        {
+            try
+            {
+                string sql = @"
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ProductJobTypes') AND name = 'Description')
+                    BEGIN
+                        ALTER TABLE [dbo].[ProductJobTypes] ADD [Description] NVARCHAR(1000) NULL;
+                    END";
+                conn.Execute(sql);
+            }
+            catch { }
+        }
+
         // GET /api/jobtypes?productId=1&q=search
         [HttpGet, Route("")]
         public HttpResponseMessage GetAll([FromUri] int? productId = null, [FromUri] string q = null)
@@ -30,6 +44,7 @@ namespace SaviSchedular.Controllers
                 using (var conn = new SqlConnection(ConnStr))
                 {
                     conn.Open();
+                    EnsureJobTypesSchema(conn);
                     string sql = @"
                         SELECT jt.*, p.ProductName
                         FROM ProductJobTypes jt

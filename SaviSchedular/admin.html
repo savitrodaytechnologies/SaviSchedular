@@ -459,8 +459,8 @@ textarea{resize:vertical;min-height:80px}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Product</th><th>Code</th><th>Name</th><th>API Path</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="jobtypes-body"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Product</th><th>Code</th><th>Name</th><th>Description</th><th>API Path</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="jobtypes-body"><tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1153,6 +1153,7 @@ async function loadJobTypes() {
         <td><span class="badge badge-running">${jt.productName}</span></td>
         <td><b>${jt.jobTypeCode}</b></td>
         <td>${jt.jobTypeName}</td>
+        <td style="color:#64748b;font-size:12px">${jt.description||'—'}</td>
         <td><code style="font-size:11px">${jt.defaultApiPath||'—'}</code></td>
         <td><span class="badge badge-skipped">${jt.httpMethod||'POST'}</span></td>
         <td>${jt.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
@@ -1161,8 +1162,8 @@ async function loadJobTypes() {
           <button class="btn btn-danger btn-sm" onclick="deleteJobType(${jt.jobTypeId})">🗑</button>
         </td>
       </tr>`).join('');
-    document.getElementById('jobtypes-body').innerHTML = rows || emptyRow(8,'No job types');
-  } catch(e) { document.getElementById('jobtypes-body').innerHTML = emptyRow(8,e.message,true); }
+    document.getElementById('jobtypes-body').innerHTML = rows || emptyRow(9,'No job types');
+  } catch(e) { document.getElementById('jobtypes-body').innerHTML = emptyRow(9,e.message,true); }
 }
 
 function openJobTypeModal(jt) {
