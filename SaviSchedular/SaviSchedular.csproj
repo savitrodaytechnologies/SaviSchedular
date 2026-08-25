@@ -133,8 +133,11 @@
     <Content Include="login.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <!-- External API Docs -->
+    <!-- External API Docs & Tester -->
     <Content Include="api-docs.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="external-tester.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <!-- SQL Scripts -->
