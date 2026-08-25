@@ -23,24 +23,6 @@ namespace SaviSchedular.Controllers
                 ? ((System.Web.HttpContextWrapper)Request.Properties["MS_HttpContext"]).Request.UserHostAddress
                 : "unknown");
 
-        private static void EnsureProductsSchema(SqlConnection conn)
-        {
-            try
-            {
-                string sql = @"
-                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'AuthType')
-                    BEGIN
-                        ALTER TABLE [dbo].[Products] ADD 
-                            [AuthType]     NVARCHAR(50)  NULL,
-                            [TokenUrl]     NVARCHAR(500) NULL,
-                            [ClientId]     NVARCHAR(200) NULL,
-                            [ClientSecret] NVARCHAR(500) NULL;
-                    END";
-                conn.Execute(sql);
-            }
-            catch { }
-        }
-
         // GET /api/products
         [HttpGet, Route("")]
         public HttpResponseMessage GetAll()
@@ -50,7 +32,6 @@ namespace SaviSchedular.Controllers
                 using (var conn = new SqlConnection(ConnStr))
                 {
                     conn.Open();
-                    EnsureProductsSchema(conn);
                     var list = conn.Query<ProductModel>(
                         "SELECT ProductId, ProductCode, ProductName, BaseUrl, TokenType, TokenHeaderName, AuthType, TokenUrl, ClientId, Description, IsActive, CreatedAt, CreatedBy FROM Products ORDER BY ProductName").AsList();
                     // Never expose ApiToken or ClientSecret in list
@@ -72,7 +53,6 @@ namespace SaviSchedular.Controllers
                 using (var conn = new SqlConnection(ConnStr))
                 {
                     conn.Open();
-                    EnsureProductsSchema(conn);
                     var item = conn.QueryFirstOrDefault<ProductModel>(
                         "SELECT * FROM Products WHERE ProductId = @Id", new { Id = id });
                     if (item == null)
@@ -101,7 +81,6 @@ namespace SaviSchedular.Controllers
                 using (var conn = new SqlConnection(ConnStr))
                 {
                     conn.Open();
-                    EnsureProductsSchema(conn);
                     if (req.ProductId == 0)
                     {
                         // INSERT
