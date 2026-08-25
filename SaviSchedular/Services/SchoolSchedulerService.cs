@@ -92,7 +92,9 @@ namespace SaviSchedular.Services
 
         // ═════════════════════════════════════════════════════════════════════
         // EXECUTE — Main job executor (called by Hangfire)
+        // Disable automatic retries so failed jobs don't re-trigger after 3 mins
         // ═════════════════════════════════════════════════════════════════════
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
         public static async Task ExecuteJobAsync(long instanceId, bool isManual)
         {
             string triggerType = isManual ? "MANUAL" : "SCHEDULED";
