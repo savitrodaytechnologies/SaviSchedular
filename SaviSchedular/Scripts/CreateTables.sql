@@ -33,6 +33,10 @@ END
 ELSE PRINT 'Table Products already exists.'
 GO
 
+-- Seed default ApiToken for SaviSchools if empty
+UPDATE Products SET ApiToken = 'SAVI_SECRET_KEY_2026' WHERE ProductCode = 'SAVISCHOOLS' AND (ApiToken IS NULL OR ApiToken = '');
+GO
+
 -- ============================================================
 -- TABLE 2: ProductJobTypes
 -- Job types per product (WhatsApp Alert, Fee Reminder, etc.)
