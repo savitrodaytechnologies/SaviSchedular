@@ -199,16 +199,23 @@ namespace SaviSchedular.Controllers
                             });
                     }
 
-                    // Sync Hangfire
+                    // Sync Hangfire Cron Schedule
                     if (req.IsActive)
                         SchoolSchedulerService.RegisterJobByInstanceId(instanceId);
                     else
                         SchoolSchedulerService.RemoveJob(instanceId);
 
                     return Request.CreateResponse(HttpStatusCode.OK, new {
-                        instanceId,
-                        clientId,
-                        message = existing == null ? "Schedule created." : "Schedule updated."
+                        success = true,
+                        instanceId = instanceId,
+                        clientId = clientId,
+                        jobId = SchoolSchedulerService.GetJobId(instanceId),
+                        productCode = pCode,
+                        jobTypeCode = jCode,
+                        externalId = req.ExternalId,
+                        scheduledTime = $"{req.ScheduledHour:D2}:{req.ScheduledMinute:D2}",
+                        isActive = req.IsActive,
+                        message = existing == null ? "Job and Schedule created & registered in Hangfire successfully!" : "Job and Schedule updated in Hangfire successfully!"
                     });
                 }
             }
