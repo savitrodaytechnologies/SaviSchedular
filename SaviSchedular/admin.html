@@ -76,17 +76,104 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .stat-card.running .stat-value{color:var(--running)}
 .stat-card.accent .stat-value{color:var(--accent)}
 
-/* ── TOOLBAR ── */
-.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.toolbar-spacer{flex:1}
-.search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
-  border-radius:8px;padding:0 12px;min-width:220px}
-.search-box input{border:none;outline:none;background:transparent;font-family:inherit;
-  font-size:13px;padding:8px 0;flex:1}
-.search-box .icon{color:var(--text-muted);font-size:14px}
-select.filter-select{border:1px solid var(--border);border-radius:8px;padding:8px 12px;
-  font-family:inherit;font-size:13px;background:#fff;cursor:pointer;outline:none;color:var(--text)}
-select.filter-select:focus{border-color:var(--accent)}
+/* ── UNIFIED PROFESSIONAL TOOLBAR SYSTEM ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  flex-wrap: nowrap;
+}
+@media (max-width: 900px) {
+  .toolbar { flex-wrap: wrap; }
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 14px !important;
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.search-box:focus-within {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+  background: #ffffff !important;
+}
+.search-box input {
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 0 !important;
+  width: 100%;
+  color: #1e293b !important;
+}
+.search-box input::placeholder {
+  color: #94a3b8;
+}
+.search-box .icon {
+  color: #64748b;
+  font-size: 14px;
+}
+
+select.filter-select {
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 7px 14px !important;
+  font-family: inherit;
+  font-size: 13px;
+  background: #ffffff !important;
+  cursor: pointer;
+  outline: none;
+  color: #1e293b !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  min-width: 140px;
+  height: 38px;
+}
+select.filter-select:hover {
+  border-color: #94a3b8 !important;
+}
+select.filter-select:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+}
+
+.btn-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  white-space: nowrap;
+}
+.btn-reset:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
@@ -310,16 +397,19 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="dash-q" placeholder="Search client, job..." onkeydown="if(event.key==='Enter')loadDashboard(1)">
+            <input type="text" id="dash-q" placeholder="Search client, job, error..." oninput="debounceSearch('dash', () => loadDashboard(1))">
           </div>
           <select class="filter-select" id="dash-status" onchange="loadDashboard(1)">
-            <option value="">All Status</option>
-            <option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
+            <option value="">All Statuses</option>
+            <option value="SUCCESS">SUCCESS</option>
+            <option value="FAILED">FAILED</option>
+            <option value="SKIPPED">SKIPPED</option>
+            <option value="RUNNING">RUNNING</option>
           </select>
           <select class="filter-select" id="dash-product" onchange="loadDashboard(1)">
             <option value="">All Products</option>
           </select>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('dash-q').value='';document.getElementById('dash-status').value='';document.getElementById('dash-product').value='';loadDashboard(1)">Reset</button>
+          <button class="btn-reset" onclick="resetDashFilters()">↺ Reset</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -355,12 +445,17 @@ textarea{resize:vertical;min-height:80px}
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Job Types</div><div class="card-subtitle">Define job types per product</div></div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <select class="filter-select" id="jt-product-filter" onchange="loadJobTypes()">
-              <option value="">All Products</option>
-            </select>
-            <button class="btn btn-primary" onclick="openJobTypeModal()">+ Add Job Type</button>
+          <button class="btn btn-primary" onclick="openJobTypeModal()">+ Add Job Type</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="jt-q" placeholder="Search job code, name, path..." oninput="debounceSearch('jt', () => loadJobTypes())">
           </div>
+          <select class="filter-select" id="jt-product-filter" onchange="loadJobTypes()">
+            <option value="">All Products</option>
+          </select>
+          <button class="btn-reset" onclick="resetJtFilters()">↺ Reset</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -376,18 +471,17 @@ textarea{resize:vertical;min-height:80px}
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Clients</div><div class="card-subtitle">Schools / clients registered under each product</div></div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <select class="filter-select" id="cl-product-filter" onchange="loadClients()">
-              <option value="">All Products</option>
-            </select>
-            <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
-          </div>
+          <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
         </div>
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="cl-q" placeholder="Search client, ID..." onkeydown="if(event.key==='Enter')loadClients()">
+            <input type="text" id="cl-q" placeholder="Search client name, external ID..." oninput="debounceSearch('cl', () => loadClients())">
           </div>
+          <select class="filter-select" id="cl-product-filter" onchange="loadClients()">
+            <option value="">All Products</option>
+          </select>
+          <button class="btn-reset" onclick="resetClientFilters()">↺ Reset</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -404,12 +498,17 @@ textarea{resize:vertical;min-height:80px}
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Schedules</div><div class="card-subtitle">Job schedule instances for each client</div></div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <select class="filter-select" id="sc-product-filter" onchange="loadSchedules()">
-              <option value="">All Products</option>
-            </select>
-            <button class="btn btn-primary" onclick="openScheduleModal()">+ Add Schedule</button>
+          <button class="btn btn-primary" onclick="openScheduleModal()">+ Add Schedule</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="sc-q" placeholder="Search client, ID, job type..." oninput="debounceSearch('sc', () => loadSchedules())">
           </div>
+          <select class="filter-select" id="sc-product-filter" onchange="loadSchedules()">
+            <option value="">All Products</option>
+          </select>
+          <button class="btn-reset" onclick="resetScheduleFilters()">↺ Reset</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -430,16 +529,19 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="log-q" placeholder="Search client, job, error..." onkeydown="if(event.key==='Enter')loadLogs(1)">
+            <input type="text" id="log-q" placeholder="Search client, job, error..." oninput="debounceSearch('log', () => loadLogs(1))">
           </div>
           <select class="filter-select" id="log-status" onchange="loadLogs(1)">
-            <option value="">All Status</option>
-            <option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
+            <option value="">All Statuses</option>
+            <option value="SUCCESS">SUCCESS</option>
+            <option value="FAILED">FAILED</option>
+            <option value="SKIPPED">SKIPPED</option>
+            <option value="RUNNING">RUNNING</option>
           </select>
           <select class="filter-select" id="log-product" onchange="loadLogs(1)">
             <option value="">All Products</option>
           </select>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('log-q').value='';document.getElementById('log-status').value='';document.getElementById('log-product').value='';loadLogs(1)">Reset</button>
+          <button class="btn-reset" onclick="resetLogFilters()">↺ Reset</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -1486,6 +1588,47 @@ function buildPagination(containerId, page, totalPages, callback) {
   html += `<button onclick="${callback.name}(${page+1})" ${page>=totalPages?'disabled':''}>Next ›</button>`;
   html += `<span class="pagination-info">Page ${page} / ${totalPages}</span>`;
   container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH & FILTER HELPERS
+// ═══════════════════════════════════════════════════════════════
+let debounceTimers = {};
+function debounceSearch(key, fn, delay = 300) {
+  clearTimeout(debounceTimers[key]);
+  debounceTimers[key] = setTimeout(fn, delay);
+}
+
+function resetDashFilters() {
+  if (document.getElementById('dash-q')) document.getElementById('dash-q').value = '';
+  if (document.getElementById('dash-status')) document.getElementById('dash-status').value = '';
+  if (document.getElementById('dash-product')) document.getElementById('dash-product').value = '';
+  loadDashboard(1);
+}
+
+function resetJtFilters() {
+  if (document.getElementById('jt-q')) document.getElementById('jt-q').value = '';
+  if (document.getElementById('jt-product-filter')) document.getElementById('jt-product-filter').value = '';
+  loadJobTypes();
+}
+
+function resetClientFilters() {
+  if (document.getElementById('cl-q')) document.getElementById('cl-q').value = '';
+  if (document.getElementById('cl-product-filter')) document.getElementById('cl-product-filter').value = '';
+  loadClients();
+}
+
+function resetScheduleFilters() {
+  if (document.getElementById('sc-q')) document.getElementById('sc-q').value = '';
+  if (document.getElementById('sc-product-filter')) document.getElementById('sc-product-filter').value = '';
+  loadSchedules();
+}
+
+function resetLogFilters() {
+  if (document.getElementById('log-q')) document.getElementById('log-q').value = '';
+  if (document.getElementById('log-status')) document.getElementById('log-status').value = '';
+  if (document.getElementById('log-product')) document.getElementById('log-product').value = '';
+  loadLogs(1);
 }
 
 // ═══════════════════════════════════════════════════════════════

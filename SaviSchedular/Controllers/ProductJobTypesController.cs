@@ -21,9 +21,9 @@ namespace SaviSchedular.Controllers
                 ? ((System.Web.HttpContextWrapper)Request.Properties["MS_HttpContext"]).Request.UserHostAddress
                 : "unknown");
 
-        // GET /api/jobtypes?productId=1
+        // GET /api/jobtypes?productId=1&q=search
         [HttpGet, Route("")]
-        public HttpResponseMessage GetAll([FromUri] int? productId = null)
+        public HttpResponseMessage GetAll([FromUri] int? productId = null, [FromUri] string q = null)
         {
             try
             {
@@ -33,12 +33,13 @@ namespace SaviSchedular.Controllers
                     string sql = @"
                         SELECT jt.*, p.ProductName
                         FROM ProductJobTypes jt
-                        JOIN Products p ON p.ProductId = jt.ProductId";
-                    if (productId.HasValue)
-                        sql += " WHERE jt.ProductId = @ProductId";
+                        JOIN Products p ON p.ProductId = jt.ProductId
+                        WHERE 1=1";
+                    if (productId.HasValue) sql += " AND jt.ProductId = @ProductId";
+                    if (!string.IsNullOrWhiteSpace(q)) sql += " AND (jt.JobTypeCode LIKE @Q OR jt.JobTypeName LIKE @Q OR jt.DefaultApiPath LIKE @Q)";
                     sql += " ORDER BY p.ProductName, jt.JobTypeName";
 
-                    var list = conn.Query<ProductJobTypeModel>(sql, new { ProductId = productId }).AsList();
+                    var list = conn.Query<ProductJobTypeModel>(sql, new { ProductId = productId, Q = $"%{q}%" }).AsList();
                     return Request.CreateResponse(HttpStatusCode.OK, list);
                 }
             }
