@@ -185,10 +185,23 @@ namespace SaviSchedular.Services
                     ? EncryptionHelper.Decrypt(inst.ClientSecret) 
                     : null;
 
-                // Resolve token dynamically from RAM Cache or OAuth2 TokenUrl
-                string token = await JwtTokenManager.GetValidTokenInternalAsync(
-                    inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
-                    inst.CustomApiToken ?? inst.ApiToken);
+                // Resolve token dynamically: RS256 Asymmetric JWT or OAuth2 RAM Cache
+                string token = null;
+                if (authType == "RS256" && !string.IsNullOrWhiteSpace(inst.RsaPrivateKey))
+                {
+                    string decryptedRsaPrivate = EncryptionHelper.Decrypt(inst.RsaPrivateKey);
+                    token = Rs256JwtService.GenerateRs256JwtToken(
+                        decryptedRsaPrivate,
+                        inst.Issuer ?? "SaviScheduler",
+                        inst.Audience ?? inst.ProductCode ?? "SaviSchools",
+                        expiryMinutes: 2);
+                }
+                else
+                {
+                    token = await JwtTokenManager.GetValidTokenInternalAsync(
+                        inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
+                        inst.CustomApiToken ?? inst.ApiToken);
+                }
 
                 // Strict Security Rule: Without valid token, NO API call is allowed
                 if (string.IsNullOrWhiteSpace(token))
@@ -260,15 +273,27 @@ namespace SaviSchedular.Services
 
                     response = await executeHttpCall();
 
-                    // 401 Single Retry Logic: Invalidate RAM Token -> Fetch Fresh Token -> Retry ONCE
+                    // 401 Single Retry Logic: Regenerate Token / Invalidate RAM Token -> Retry ONCE
                     if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        Console.WriteLine($"[SaviSchedular v2] ⚠️ 401 Unauthorized received for Instance {instanceId}. Invalidating RAM Token and retrying ONCE...");
+                        Console.WriteLine($"[SaviSchedular v2] ⚠️ 401 Unauthorized received for Instance {instanceId}. Regenerating fresh token and retrying ONCE...");
                         
-                        JwtTokenManager.InvalidateToken(inst.ProductId);
-                        token = await JwtTokenManager.GetValidTokenInternalAsync(
-                            inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
-                            inst.CustomApiToken ?? inst.ApiToken);
+                        if (authType == "RS256" && !string.IsNullOrWhiteSpace(inst.RsaPrivateKey))
+                        {
+                            string decryptedRsaPrivate = EncryptionHelper.Decrypt(inst.RsaPrivateKey);
+                            token = Rs256JwtService.GenerateRs256JwtToken(
+                                decryptedRsaPrivate,
+                                inst.Issuer ?? "SaviScheduler",
+                                inst.Audience ?? inst.ProductCode ?? "SaviSchools",
+                                expiryMinutes: 2);
+                        }
+                        else
+                        {
+                            JwtTokenManager.InvalidateToken(inst.ProductId);
+                            token = await JwtTokenManager.GetValidTokenInternalAsync(
+                                inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
+                                inst.CustomApiToken ?? inst.ApiToken);
+                        }
 
                         attachAuthHeader();
                         response = await executeHttpCall();

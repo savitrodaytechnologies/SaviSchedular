@@ -622,6 +622,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="form-group">
           <label>Auth Type</label>
           <select id="p-auth-type" onchange="onAuthTypeChange()">
+            <option value="RS256">RS256 Asymmetric JWT (Recommended)</option>
             <option value="Bearer">Bearer Token (Static)</option>
             <option value="OAuth2">OAuth2 / Dynamic JWT</option>
             <option value="ApiKey">ApiKey (Custom Header)</option>
@@ -637,6 +638,27 @@ textarea{resize:vertical;min-height:80px}
       <div class="form-group" id="group-p-token">
         <label>API Token / Key</label>
         <input type="password" id="p-token" placeholder="Enter token (leave blank to keep existing)">
+      </div>
+      <div id="group-rs256-fields" style="display:none;background:#eef2ff;border:1px solid #c7d2fe;padding:14px;border-radius:10px;margin-bottom:14px">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Audience (aud) *</label>
+            <input type="text" id="p-audience" placeholder="SaviSchools">
+          </div>
+          <div class="form-group">
+            <label>Token Issuer (iss)</label>
+            <input type="text" id="p-issuer" value="SaviScheduler">
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <button type="button" class="btn btn-primary btn-sm" onclick="generateRsaKeys()">⚡ Generate New RS256 RSA Key Pair</button>
+        </div>
+        <input type="hidden" id="p-rsa-private">
+        <div class="form-group" id="group-public-key" style="display:none">
+          <label>Target API Public Key (Copy to Target API Web.config)</label>
+          <textarea id="p-rsa-public" rows="3" readonly style="font-family:monospace;font-size:11px;background:#fff"></textarea>
+          <button type="button" class="btn btn-success btn-sm" style="margin-top:6px" onclick="copyPublicKey()">📋 Copy Public Key</button>
+        </div>
       </div>
       <div id="group-oauth-fields" style="display:none;background:#f1f5f9;padding:12px;border-radius:8px;margin-bottom:12px">
         <div class="form-group">
@@ -1013,8 +1035,26 @@ async function loadProductsTable() {
 function onAuthTypeChange() {
   const type = document.getElementById('p-auth-type').value;
   const isOAuth = (type === 'OAuth2');
+  const isRS256 = (type === 'RS256');
   document.getElementById('group-oauth-fields').style.display = isOAuth ? 'block' : 'none';
-  document.getElementById('group-p-token').style.display = isOAuth ? 'none' : 'block';
+  document.getElementById('group-rs256-fields').style.display = isRS256 ? 'block' : 'none';
+  document.getElementById('group-p-token').style.display = (isOAuth || isRS256) ? 'none' : 'block';
+}
+
+async function generateRsaKeys() {
+  try {
+    const keys = await api('GET', '/api/products/generate-rsa-keys');
+    document.getElementById('p-rsa-private').value = keys.privateKeyXml;
+    document.getElementById('p-rsa-public').value = keys.publicKeyXml;
+    document.getElementById('group-public-key').style.display = 'block';
+    toast('RS256 Key Pair Generated!');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function copyPublicKey() {
+  const pub = document.getElementById('p-rsa-public').value;
+  if (!pub) return;
+  navigator.clipboard.writeText(pub).then(() => toast('Public Key copied to clipboard!'));
 }
 
 function openProductModal(p) {
@@ -1022,12 +1062,17 @@ function openProductModal(p) {
   document.getElementById('p-code').value  = p?.productCode||'';
   document.getElementById('p-name').value  = p?.productName||'';
   document.getElementById('p-url').value   = p?.baseUrl||'';
-  document.getElementById('p-auth-type').value = p?.authType||'Bearer';
+  document.getElementById('p-auth-type').value = p?.authType||'RS256';
   document.getElementById('p-token-header').value = p?.tokenHeaderName||'Authorization';
   document.getElementById('p-token').value = '';
   document.getElementById('p-token-url').value = p?.tokenUrl||'';
   document.getElementById('p-client-id').value = p?.clientId||'';
   document.getElementById('p-client-secret').value = '';
+  document.getElementById('p-audience').value = p?.audience||p?.productCode||'SaviSchools';
+  document.getElementById('p-issuer').value = p?.issuer||'SaviScheduler';
+  document.getElementById('p-rsa-private').value = p?.rsaPrivateKey||'';
+  document.getElementById('p-rsa-public').value = p?.rsaPublicKey||'';
+  document.getElementById('group-public-key').style.display = p?.rsaPublicKey ? 'block' : 'none';
   document.getElementById('p-desc').value  = p?.description||'';
   document.getElementById('p-active').checked = p ? p.isActive : true;
   document.getElementById('product-modal-title').textContent = p ? 'Edit Product' : 'Add Product';
@@ -1054,6 +1099,10 @@ async function saveProduct() {
     tokenUrl: document.getElementById('p-token-url').value.trim(),
     clientId: document.getElementById('p-client-id').value.trim(),
     clientSecret: document.getElementById('p-client-secret').value.trim()||'••••••••',
+    audience: document.getElementById('p-audience').value.trim(),
+    issuer: document.getElementById('p-issuer').value.trim(),
+    rsaPrivateKey: document.getElementById('p-rsa-private').value.trim()||'••••••••',
+    rsaPublicKey: document.getElementById('p-rsa-public').value.trim(),
     description: document.getElementById('p-desc').value.trim(),
     isActive: document.getElementById('p-active').checked,
   };

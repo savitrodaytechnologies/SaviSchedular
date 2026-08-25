@@ -20,6 +20,10 @@ namespace SaviSchedular.Models
         public string TokenUrl        { get; set; }
         public string ClientId        { get; set; }
         public string ClientSecret    { get; set; }
+        public string RsaPrivateKey   { get; set; }
+        public string RsaPublicKey    { get; set; }
+        public string Audience        { get; set; }
+        public string Issuer          { get; set; }
         public string Description     { get; set; }
         public bool   IsActive        { get; set; }
         public DateTime CreatedAt     { get; set; }
@@ -76,6 +80,10 @@ namespace SaviSchedular.Models
         public string TokenUrl               { get; set; }
         public string OAuthClientId          { get; set; }
         public string ClientSecret           { get; set; }
+        public string RsaPrivateKey          { get; set; }
+        public string RsaPublicKey           { get; set; }
+        public string Audience               { get; set; }
+        public string Issuer                 { get; set; }
         // Instance-specific
         public string CustomApiPath          { get; set; }
         public string CustomApiToken         { get; set; }
@@ -169,6 +177,10 @@ namespace SaviSchedular.Models
         public string TokenUrl        { get; set; }
         public string ClientId        { get; set; }
         public string ClientSecret    { get; set; }
+        public string RsaPrivateKey   { get; set; }
+        public string RsaPublicKey    { get; set; }
+        public string Audience        { get; set; }
+        public string Issuer          { get; set; }
         public string Description     { get; set; }
         public bool   IsActive        { get; set; }
     }

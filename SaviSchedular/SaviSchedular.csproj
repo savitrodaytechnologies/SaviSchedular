@@ -111,6 +111,7 @@
     <Compile Include="Services\LoggingService.cs" />
     <Compile Include="Services\Security\EncryptionHelper.cs" />
     <Compile Include="Services\Security\JwtTokenManager.cs" />
+    <Compile Include="Services\Security\Rs256JwtService.cs" />
     <Compile Include="Services\Security\SecureLogger.cs" />
     <!-- App -->
     <Compile Include="Global.asax.cs">
