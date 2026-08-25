@@ -33,19 +33,17 @@ namespace SaviSchedular.Controllers
         {
             IEnumerable<string> vals;
             if (!Request.Headers.TryGetValues("X-SaviSchedular-Key", out vals))
-                return (true, new ApiClientModel { ClientName = "ExternalAPI", IsActive = true });
+                return (false, null);
 
             string key = vals.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(key))
-                return (true, new ApiClientModel { ClientName = "ExternalAPI", IsActive = true });
+            if (string.IsNullOrWhiteSpace(key)) return (false, null);
 
             using (var conn = new SqlConnection(ConnStr))
             {
                 conn.Open();
                 var apiClient = conn.QueryFirstOrDefault<ApiClientModel>(
                     "SELECT * FROM ApiClients WHERE ApiKey=@Key AND IsActive=1", new { Key = key });
-                if (apiClient == null)
-                    return (true, new ApiClientModel { ClientName = "ExternalAPI", IsActive = true });
+                if (apiClient == null) return (false, null);
 
                 // Update LastUsedAt
                 conn.Execute("UPDATE ApiClients SET LastUsedAt=@Now WHERE ApiClientId=@Id",
@@ -57,7 +55,7 @@ namespace SaviSchedular.Controllers
 
         private bool IsProductAllowed(ApiClientModel apiClient, int productId)
         {
-            if (apiClient == null || string.IsNullOrWhiteSpace(apiClient.AllowedProductIds)) return true;
+            if (string.IsNullOrWhiteSpace(apiClient.AllowedProductIds)) return true; // all allowed
             var allowed = apiClient.AllowedProductIds.Split(',');
             return allowed.Any(a => a.Trim() == productId.ToString());
         }
@@ -69,7 +67,7 @@ namespace SaviSchedular.Controllers
         public HttpResponseMessage UpsertSchedule([FromBody] ExternalScheduleRequest req)
         {
             var (valid, apiClient) = AuthenticateRequest();
-            if (!valid) return Request.CreateResponse(HttpStatusCode.Unauthorized, new { error = "Invalid request." });
+            if (!valid) return Request.CreateResponse(HttpStatusCode.Unauthorized, new { error = "Invalid or missing X-SaviSchedular-Key." });
 
             if (req == null || string.IsNullOrWhiteSpace(req.ProductCode)
                 || string.IsNullOrWhiteSpace(req.JobTypeCode)
@@ -82,51 +80,27 @@ namespace SaviSchedular.Controllers
                 {
                     conn.Open();
 
-                    string pCode = req.ProductCode.Trim().ToUpper();
-                    string jCode = req.JobTypeCode.Trim().ToUpper();
-
-                    // Resolve or Auto-Create Product
+                    // Resolve Product
                     var product = conn.QueryFirstOrDefault<ProductModel>(
-                        "SELECT * FROM Products WHERE ProductCode=@Code",
-                        new { Code = pCode });
-
-                    int productId;
+                        "SELECT * FROM Products WHERE ProductCode=@Code AND IsActive=1",
+                        new { Code = req.ProductCode.ToUpper() });
                     if (product == null)
-                    {
-                        productId = conn.ExecuteScalar<int>(@"
-                            INSERT INTO Products (ProductCode, ProductName, BaseUrl, TokenType, TokenHeaderName, AuthType, IsActive, CreatedAt)
-                            VALUES (@Code, @Name, 'http://localhost:44548', 'Bearer', 'Authorization', 'RS256', 1, GETDATE());
-                            SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                            new { Code = pCode, Name = pCode });
-                    }
-                    else
-                    {
-                        productId = product.ProductId;
-                    }
+                        return Request.CreateResponse(HttpStatusCode.BadRequest, new { error = $"Product '{req.ProductCode}' not found or inactive." });
 
-                    // Resolve or Auto-Create JobType
+                    if (!IsProductAllowed(apiClient, product.ProductId))
+                        return Request.CreateResponse(HttpStatusCode.Forbidden, new { error = "API key not authorized for this product." });
+
+                    // Resolve JobType
                     var jobType = conn.QueryFirstOrDefault<ProductJobTypeModel>(
-                        "SELECT * FROM ProductJobTypes WHERE ProductId=@PId AND JobTypeCode=@Code",
-                        new { PId = productId, Code = jCode });
-
-                    int jobTypeId;
+                        "SELECT * FROM ProductJobTypes WHERE ProductId=@PId AND JobTypeCode=@Code AND IsActive=1",
+                        new { PId = product.ProductId, Code = req.JobTypeCode.ToUpper() });
                     if (jobType == null)
-                    {
-                        jobTypeId = conn.ExecuteScalar<int>(@"
-                            INSERT INTO ProductJobTypes (ProductId, JobTypeCode, JobTypeName, DefaultApiPath, HttpMethod, IsActive)
-                            VALUES (@ProductId, @Code, @Name, '/api/asapi/schoolanalyticsSchedulers', 'POST', 1);
-                            SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                            new { ProductId = productId, Code = jCode, Name = jCode });
-                    }
-                    else
-                    {
-                        jobTypeId = jobType.JobTypeId;
-                    }
+                        return Request.CreateResponse(HttpStatusCode.BadRequest, new { error = $"JobType '{req.JobTypeCode}' not found for this product." });
 
                     // Upsert ProductClient
                     var client = conn.QueryFirstOrDefault<ProductClientModel>(
                         "SELECT * FROM ProductClients WHERE ProductId=@PId AND ExternalId=@EId",
-                        new { PId = productId, EId = req.ExternalId });
+                        new { PId = product.ProductId, EId = req.ExternalId });
 
                     long clientId;
                     if (client == null)
@@ -136,7 +110,7 @@ namespace SaviSchedular.Controllers
                             VALUES (@ProductId, @ClientName, @ExternalId, 1, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
                             new {
-                                ProductId = productId,
+                                ProductId = product.ProductId,
                                 ClientName = req.ClientName ?? $"Client-{req.ExternalId}",
                                 ExternalId = req.ExternalId,
                                 Now = DateTime.Now, By = apiClient.ClientName
@@ -154,7 +128,7 @@ namespace SaviSchedular.Controllers
                     // Upsert SchedulerJobInstances
                     var existing = conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(
                         "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId",
-                        new { CId = clientId, JId = jobTypeId });
+                        new { CId = clientId, JId = jobType.JobTypeId });
 
                     long instanceId;
                     if (existing == null)
@@ -168,7 +142,7 @@ namespace SaviSchedular.Controllers
                                  @TimeZone, @IsActive, @RunOnHolidays, 15, @Now, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
                             new {
-                                ClientId = clientId, ProductId = productId, JobTypeId = jobTypeId,
+                                ClientId = clientId, ProductId = product.ProductId, JobTypeId = jobType.JobTypeId,
                                 CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
                                 req.PayloadJson, req.ScheduledHour, req.ScheduledMinute,
                                 TimeZone = req.TimeZone ?? "India Standard Time",
