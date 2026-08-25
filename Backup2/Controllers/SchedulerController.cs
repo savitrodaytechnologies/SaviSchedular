@@ -257,7 +257,7 @@ namespace SaviSchedular.Controllers
 
                     int offset = (page - 1) * pageSize;
 
-                    var recentLogs = conn.Query($@"
+                    var recentLogs = conn.Query(@$"
                         SELECT el.LogId, el.ClientName, el.ExternalId, el.JobTypeCode,
                                el.TriggerType, el.StartedAt, el.CompletedAt, el.DurationSeconds,
                                el.Status, el.ErrorMessage, el.HttpStatusCode, el.ProductId,
@@ -267,11 +267,11 @@ namespace SaviSchedular.Controllers
                         {where}
                         ORDER BY el.StartedAt DESC
                         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
-                        new {{ Q = $"%{q}%", Status = status, ProductId = productId, Offset = offset, PageSize = pageSize }}).AsList();
+                        new { Q = $"%{q}%", Status = status, ProductId = productId, Offset = offset, PageSize = pageSize }).AsList();
 
-                    int total = conn.ExecuteScalar<int>($@"
+                    int total = conn.ExecuteScalar<int>(@$"
                         SELECT COUNT(1) FROM SchedulerExecutionLogs el {where}",
-                        new {{ Q = $"%{q}%", Status = status, ProductId = productId }});
+                        new { Q = $"%{q}%", Status = status, ProductId = productId });
 
                     int totalPages = (int)Math.Ceiling((double)total / pageSize);
 
