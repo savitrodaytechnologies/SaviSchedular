@@ -95,13 +95,14 @@
   <ItemGroup>
     <!-- Controllers -->
     <Compile Include="Controllers\SchedulerController.cs" />
-    <Compile Include="Controllers\JobTypeController.cs" />
-    <Compile Include="Controllers\ApiConfigController.cs" />
+    <Compile Include="Controllers\ProductsController.cs" />
+    <Compile Include="Controllers\ProductJobTypesController.cs" />
+    <Compile Include="Controllers\ProductClientsController.cs" />
+    <Compile Include="Controllers\ApiClientsController.cs" />
+    <Compile Include="Controllers\ExternalSchedulerController.cs" />
     <Compile Include="Controllers\GlobalConfigController.cs" />
     <Compile Include="Controllers\LogsController.cs" />
-    <Compile Include="Controllers\AdminController.cs" />
     <!-- Models -->
-    <Compile Include="Models\SchoolScheduleModel.cs" />
     <Compile Include="Models\SchedulerModels.cs" />
     <!-- Services -->
     <Compile Include="Services\SchoolSchedulerService.cs" />
@@ -118,11 +119,15 @@
     <Content Include="Global.asax" />
     <Content Include="Web.config" />
     <Content Include="packages.config" />
-    <!-- Admin UI — Build Action: Content, Copy Always -->
+    <!-- Admin UI -->
     <Content Include="admin.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <!-- SQL Scripts — sirf reference ke liye -->
+    <!-- External API Docs -->
+    <Content Include="api-docs.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <!-- SQL Scripts -->
     <Content Include="Scripts\CreateTables.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
