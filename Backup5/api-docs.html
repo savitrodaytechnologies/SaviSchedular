@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaviSchedular — External API Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #263348; --surface3: #2d3f57;
+  --border: #334155; --accent: #6366f1; --accent2: #8b5cf6; --green: #10b981;
+  --red: #ef4444; --yellow: #f59e0b; --blue: #3b82f6; --cyan: #06b6d4;
+  --text: #f1f5f9; --text-muted: #94a3b8; --text-dim: #64748b;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+  font-size: 14px; line-height: 1.6; min-height: 100vh; }
+code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 50%, #0f2027 100%);
+  padding: 60px 40px 40px; text-align: center; border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.15), transparent);
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px; background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; padding: 6px 16px;
+  font-size: 12px; font-weight: 600; color: #a5b4fc; margin-bottom: 20px; position: relative;
+}
+.hero h1 { font-size: 40px; font-weight: 800; position: relative;
+  background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+.hero p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto 28px; position: relative; }
+.hero-tabs { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; position: relative; }
+.hero-tab { padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.hero-tab.active, .hero-tab:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── LAYOUT ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+.grid-2 { display: grid; grid-template-columns: 280px 1fr; gap: 32px; align-items: start; }
+
+/* ── SIDEBAR NAV ── */
+.api-nav { position: sticky; top: 20px; }
+.api-nav h3 { font-size: 11px; font-weight: 700; color: var(--text-dim); letter-spacing: 1.2px;
+  text-transform: uppercase; margin-bottom: 12px; }
+.api-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; color: var(--text-muted);
+  font-size: 13px; font-weight: 500; margin-bottom: 2px; border: 1px solid transparent; }
+.api-nav-item:hover { background: var(--surface); color: var(--text); }
+.api-nav-item.active { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
+.method-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono'; }
+.badge-post { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.badge-get  { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+.badge-del  { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+/* ── QUICK START ── */
+.quick-start { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; margin-bottom: 32px; }
+.quick-start h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.steps { display: flex; flex-direction: column; gap: 16px; }
+.step { display: flex; gap: 16px; align-items: flex-start; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  flex-shrink: 0; margin-top: 2px; }
+.step-content h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.step-content p { font-size: 13px; color: var(--text-muted); }
+
+/* ── API SECTION ── */
+.api-section { margin-bottom: 40px; scroll-margin-top: 20px; }
+.api-section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.api-section-title { font-size: 20px; font-weight: 700; }
+.endpoint-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 20px; }
+.endpoint-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+  border-bottom: 1px solid var(--border); background: var(--surface2); }
+.endpoint-path { font-family: 'JetBrains Mono'; font-size: 14px; font-weight: 500; color: var(--text); }
+.endpoint-desc { font-size: 13px; color: var(--text-muted); margin-left: auto; }
+.endpoint-body { padding: 20px; }
+
+/* ── AUTH BOX ── */
+.auth-box { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25);
+  border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;
+  display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+.auth-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── CODE BLOCK ── */
+.code-block { background: #0d1117; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; margin: 12px 0; }
+.code-header { display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; background: var(--surface3); border-bottom: 1px solid var(--border); }
+.code-lang { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; }
+.copy-btn { background: none; border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px;
+  color: var(--text-muted); font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.copy-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.code-content { padding: 16px; overflow-x: auto; }
+.code-content pre { font-size: 13px; line-height: 1.7; color: #e2e8f0; white-space: pre; }
+.hl-key { color: #79c0ff; }
+.hl-str { color: #a5d6ff; }
+.hl-num { color: #ffa657; }
+.hl-bool { color: #ff7b72; }
+.hl-comment { color: #8b949e; font-style: italic; }
+.hl-method { color: #d2a8ff; }
+.hl-url { color: #79c0ff; }
+.hl-header { color: #ffa657; }
+.hl-value { color: #a5d6ff; }
+
+/* ── PARAMS TABLE ── */
+.params-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 16px 0 8px;
+  text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; }
+.params-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.params-table th { text-align: left; padding: 8px 12px; background: var(--surface3);
+  font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.params-table td { padding: 9px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+.params-table td:first-child { font-family: 'JetBrains Mono'; font-size: 12px; color: #79c0ff; }
+.params-table td:nth-child(2) { color: #ffa657; font-size: 12px; }
+.required-badge { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+.optional-badge { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+
+/* ── RESPONSE ── */
+.response-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.resp-tab { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); color: var(--text-muted); background: var(--surface3); transition: all 0.2s; }
+.resp-tab.active-success { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: #34d399; }
+.resp-tab.active-error   { background: rgba(239,68,68,0.15);  border-color: rgba(239,68,68,0.4);  color: #f87171; }
+
+/* ── LIVE TESTER ── */
+.tester-section { background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(139,92,246,0.05));
+  border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius); padding: 28px; margin-bottom: 32px; }
+.tester-section h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+.tester-section p { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+input, select, textarea {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 9px 12px; color: var(--text); font-family: inherit; font-size: 13px; outline: none;
+  transition: all 0.2s; width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+textarea { font-family: 'JetBrains Mono'; min-height: 90px; resize: vertical; }
+select option { background: var(--surface); }
+.btn-test { display: flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: none;
+  transition: all 0.2s; margin-top: 16px; }
+.btn-test:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99,102,241,0.4); }
+.btn-test:active { transform: none; }
+.btn-test .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.response-area { margin-top: 16px; display: none; }
+.response-status { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.status-pill { padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono'; }
+.status-2xx { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.status-4xx { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.status-5xx { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 18px; font-size: 13px; color: var(--text); box-shadow: var(--shadow);
+  transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; display: flex; align-items: center; gap: 8px; }
+.toast.show { transform: none; opacity: 1; }
+
+/* ── USE CASE CARDS ── */
+.use-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.use-case-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; transition: all 0.2s; }
+.use-case-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+.use-case-icon { font-size: 28px; margin-bottom: 12px; }
+.use-case-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.use-case-card p { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<div class="hero">
+  <div class="hero-badge">🌐 External API v2.0</div>
+  <h1>SaviSchedular API</h1>
+  <p>Apne project se directly schedule create, update, delete aur trigger karo — bina Admin UI khole.</p>
+  <div class="hero-tabs">
+    <div class="hero-tab active" onclick="scrollTo('quick-start')">⚡ Quick Start</div>
+    <div class="hero-tab" onclick="scrollTo('section-schedule')">📅 Create Schedule</div>
+    <div class="hero-tab" onclick="scrollTo('section-status')">🔍 Check Status</div>
+    <div class="hero-tab" onclick="scrollTo('section-trigger')">▶ Manual Trigger</div>
+    <div class="hero-tab" onclick="scrollTo('section-delete')">🗑 Delete</div>
+    <div class="hero-tab" onclick="scrollTo('section-tester')">🧪 Live Tester</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══ USE CASES ══ -->
+  <div class="use-cases">
+    <div class="use-case-card">
+      <div class="use-case-icon">🏫</div>
+      <h4>School Add Karo</h4>
+      <p>SaviSchools panel se school add hote hi SaviSchedular mein auto schedule create ho jaye</p>
+    </div>
+    <div class="use-case-card">
+      <div class="use-case-icon">⏸️</div>
+      <h4>Schedule Disable Karo</h4>
+      <p>School band ho to API se schedule deactivate karo — manually Admin UI kholne ki zaroorat nahi</p>
+    </div>
+    <div class="use-case-card">
+      <div class="use-case-icon">▶️</div>
+      <h4>On-Demand Trigger</h4>
+      <p>Kisi bhi waqt manually job trigger karo apne project ke button se</p>
+    </div>
+    <div class="use-case-card">
+      <div class="use-case-icon">🔄</div>
+      <h4>Time Change Karo</h4>
+      <p>School ka schedule time update karo directly apne project se</p>
+    </div>
+  </div>
+
+  <!-- ══ QUICK START ══ -->
+  <div class="quick-start" id="quick-start">
+    <h2>⚡ Quick Start — 3 Steps</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Admin UI se API Key Generate Karo</h4>
+          <p>SaviSchedular Admin → <b>API Keys</b> section → "New API Key" → Key copy karo (sirf ek baar dikhega)</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Har Request mein Header Lagao</h4>
+          <div class="code-block" style="margin-top:8px">
+            <div class="code-content">
+              <pre><span class="hl-header">X-SaviSchedular-Key:</span> <span class="hl-value">your_api_key_here</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>API Call Karo</h4>
+          <p>Neeche diye endpoints use karo — schedule create, update, trigger, delete sab possible hai</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- ══ LEFT NAV ══ -->
+    <div class="api-nav">
+      <h3>Endpoints</h3>
+      <div class="api-nav-item active" onclick="scrollTo('section-schedule')">
+        <span class="method-badge badge-post">POST</span> Create / Update Schedule
+      </div>
+      <div class="api-nav-item" onclick="scrollTo('section-status')">
+        <span class="method-badge badge-get">GET</span> Check Schedule Status
+      </div>
+      <div class="api-nav-item" onclick="scrollTo('section-trigger')">
+        <span class="method-badge badge-post">POST</span> Manual Trigger
+      </div>
+      <div class="api-nav-item" onclick="scrollTo('section-delete')">
+        <span class="method-badge badge-del">DELETE</span> Delete Schedule
+      </div>
+      <br>
+      <h3>Responses</h3>
+      <div style="font-size:12px;color:var(--text-muted);padding:4px 12px;display:flex;flex-direction:column;gap:8px">
+        <div>🟢 <code style="color:#34d399">200 OK</code> — Success</div>
+        <div>🔴 <code style="color:#f87171">401 Unauthorized</code> — Invalid Key</div>
+        <div>🔴 <code style="color:#f87171">403 Forbidden</code> — Product Access Denied</div>
+        <div>🔴 <code style="color:#f87171">400 Bad Request</code> — Missing Fields</div>
+        <div>🔴 <code style="color:#f87171">404 Not Found</code> — Schedule nahi mili</div>
+      </div>
+    </div>
+
+    <!-- ══ RIGHT CONTENT ══ -->
+    <div>
+
+      <!-- ── CREATE / UPDATE ── -->
+      <div class="api-section" id="section-schedule">
+        <div class="api-section-header">
+          <span class="method-badge badge-post" style="font-size:13px;padding:4px 12px">POST</span>
+          <span class="api-section-title">Create / Update Schedule</span>
+        </div>
+
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <code class="endpoint-path">/api/external/schedule</code>
+            <span class="endpoint-desc">Upsert — schedule hai to update, nahi to create</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="auth-box">
+              <span class="icon">🔐</span>
+              <div>Header required: <code style="color:#a5b4fc">X-SaviSchedular-Key: YOUR_API_KEY</code><br>
+              <span style="color:var(--text-muted);font-size:12px">Admin UI → API Keys se generate karo</span></div>
+            </div>
+
+            <div class="params-title">Request Body (JSON)</div>
+            <table class="params-table">
+              <tr><th>Field</th><th>Type</th><th>Required?</th><th>Description</th></tr>
+              <tr>
+                <td>productCode</td><td>string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td style="color:var(--text-muted)">Product ka code jaise <code>SAVISCHOOLS</code>, <code>10XVIRAL</code></td>
+              </tr>
+              <tr>
+                <td>jobTypeCode</td><td>string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td style="color:var(--text-muted)"><code>WHATSAPP_ABSENT</code>, <code>FEE_REMINDER</code> etc.</td>
+              </tr>
+              <tr>
+                <td>externalId</td><td>string</td>
+                <td><span class="required-badge">Required</span></td>
+                <td style="color:var(--text-muted)">Aapka SchoolId ya ClientId (e.g. <code>"1093"</code>)</td>
+              </tr>
+              <tr>
+                <td>clientName</td><td>string</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td style="color:var(--text-muted)">School ka naam (first time register ke liye)</td>
+              </tr>
+              <tr>
+                <td>scheduledHour</td><td>int (0–23)</td>
+                <td><span class="required-badge">Required</span></td>
+                <td style="color:var(--text-muted)">Job kitne baje chale — 24hr format</td>
+              </tr>
+              <tr>
+                <td>scheduledMinute</td><td>int (0–59)</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td style="color:var(--text-muted)">Default: <code>0</code></td>
+              </tr>
+              <tr>
+                <td>payloadJson</td><td>string (JSON)</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td style="color:var(--text-muted)">Extra POST body params: <code>{"companyId":"1"}</code></td>
+              </tr>
+              <tr>
+                <td>isActive</td><td>bool</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td style="color:var(--text-muted)">Default: <code>true</code></td>
+              </tr>
+              <tr>
+                <td>timeZone</td><td>string</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td style="color:var(--text-muted)">Default: <code>India Standard Time</code></td>
+              </tr>
+            </table>
+
+            <div class="params-title" style="margin-top:20px">Example Request</div>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">HTTP</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <div class="code-content"><pre><span class="hl-method">POST</span> <span class="hl-url">https://scheduler.savischools.com/api/external/schedule</span>
+<span class="hl-header">Content-Type:</span> <span class="hl-value">application/json</span>
+<span class="hl-header">X-SaviSchedular-Key:</span> <span class="hl-value">abc123def456...</span>
+
+{
+  <span class="hl-key">"productCode"</span>:     <span class="hl-str">"SAVISCHOOLS"</span>,
+  <span class="hl-key">"jobTypeCode"</span>:     <span class="hl-str">"WHATSAPP_ABSENT"</span>,
+  <span class="hl-key">"externalId"</span>:      <span class="hl-str">"1093"</span>,
+  <span class="hl-key">"clientName"</span>:      <span class="hl-str">"Delhi Public School"</span>,
+  <span class="hl-key">"scheduledHour"</span>:   <span class="hl-num">10</span>,
+  <span class="hl-key">"scheduledMinute"</span>: <span class="hl-num">0</span>,
+  <span class="hl-key">"payloadJson"</span>:     <span class="hl-str">"{\"companyId\":\"1\",\"branchId\":\"5\"}"</span>,
+  <span class="hl-key">"isActive"</span>:        <span class="hl-bool">true</span>,
+  <span class="hl-key">"timeZone"</span>:        <span class="hl-str">"India Standard Time"</span>
+}</pre></div>
+            </div>
+
+            <div class="params-title" style="margin-top:20px">C# Example (SaviSchools se call karo)</div>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">C#</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <div class="code-content"><pre><span class="hl-comment">// NuGet: Newtonsoft.Json</span>
+<span class="hl-key">var</span> client = <span class="hl-key">new</span> HttpClient();
+client.DefaultRequestHeaders.Add(<span class="hl-str">"X-SaviSchedular-Key"</span>, <span class="hl-str">"your_key_here"</span>);
+
+<span class="hl-key">var</span> body = JsonConvert.SerializeObject(<span class="hl-key">new</span> {
+    productCode     = <span class="hl-str">"SAVISCHOOLS"</span>,
+    jobTypeCode     = <span class="hl-str">"WHATSAPP_ABSENT"</span>,
+    externalId      = schoolId.ToString(),
+    clientName      = schoolName,
+    scheduledHour   = <span class="hl-num">10</span>,
+    scheduledMinute = <span class="hl-num">0</span>,
+    payloadJson     = $<span class="hl-str">"\"{\\\"companyId\\\":\\\"{companyId}\\\"}\"</span>,
+    isActive        = <span class="hl-bool">true</span>
+});
+
+<span class="hl-key">var</span> response = <span class="hl-key">await</span> client.PostAsync(
+    <span class="hl-str">"https://scheduler.savischools.com/api/external/schedule"</span>,
+    <span class="hl-key">new</span> StringContent(body, Encoding.UTF8, <span class="hl-str">"application/json"</span>)
+);</pre></div>
+            </div>
+
+            <div class="params-title" style="margin-top:20px">Responses</div>
+            <div class="response-tabs">
+              <div class="resp-tab active-success">✅ 200 Created</div>
+              <div class="resp-tab active-success">✅ 200 Updated</div>
+              <div class="resp-tab active-error">❌ 401 Unauthorized</div>
+            </div>
+            <div class="code-block">
+              <div class="code-content"><pre>{
+  <span class="hl-key">"instanceId"</span>: <span class="hl-num">42</span>,
+  <span class="hl-key">"clientId"</span>:   <span class="hl-num">7</span>,
+  <span class="hl-key">"message"</span>:    <span class="hl-str">"Schedule created."</span>
+}</pre></div>
+            </div>
+
+            <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text-muted);margin-top:12px">
+              💡 <b style="color:#34d399">Auto-Inject:</b> API automatically <code>targetId</code>, <code>externalId</code>, aur <code>productCode</code> POST body mein add karta hai — aapko manually nahi banana.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GET STATUS ── -->
+      <div class="api-section" id="section-status">
+        <div class="api-section-header">
+          <span class="method-badge badge-get" style="font-size:13px;padding:4px 12px">GET</span>
+          <span class="api-section-title">Check Schedule Status</span>
+        </div>
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <code class="endpoint-path">/api/external/schedule?productCode=X&externalId=Y</code>
+          </div>
+          <div class="endpoint-body">
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-content"><pre><span class="hl-method">GET</span> <span class="hl-url">https://scheduler.savischools.com/api/external/schedule?productCode=SAVISCHOOLS&externalId=1093</span>
+<span class="hl-header">X-SaviSchedular-Key:</span> <span class="hl-value">abc123...</span></pre></div>
+            </div>
+            <div class="params-title">Response</div>
+            <div class="code-block">
+              <div class="code-content"><pre>[
+  {
+    <span class="hl-key">"instanceId"</span>:      <span class="hl-num">42</span>,
+    <span class="hl-key">"jobTypeCode"</span>:     <span class="hl-str">"WHATSAPP_ABSENT"</span>,
+    <span class="hl-key">"jobTypeName"</span>:     <span class="hl-str">"WhatsApp Absent Alert"</span>,
+    <span class="hl-key">"scheduledHour"</span>:   <span class="hl-num">10</span>,
+    <span class="hl-key">"scheduledMinute"</span>: <span class="hl-num">0</span>,
+    <span class="hl-key">"isActive"</span>:        <span class="hl-bool">true</span>,
+    <span class="hl-key">"lastStatus"</span>:      <span class="hl-str">"SUCCESS"</span>,
+    <span class="hl-key">"lastRun"</span>:         <span class="hl-str">"2026-08-25T10:00:12"</span>
+  }
+]</pre></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TRIGGER ── -->
+      <div class="api-section" id="section-trigger">
+        <div class="api-section-header">
+          <span class="method-badge badge-post" style="font-size:13px;padding:4px 12px">POST</span>
+          <span class="api-section-title">Manual Trigger</span>
+        </div>
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <code class="endpoint-path">/api/external/trigger</code>
+            <span class="endpoint-desc">Abhi turant job chalao</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-content"><pre><span class="hl-method">POST</span> <span class="hl-url">https://scheduler.savischools.com/api/external/trigger</span>
+<span class="hl-header">Content-Type:</span> <span class="hl-value">application/json</span>
+<span class="hl-header">X-SaviSchedular-Key:</span> <span class="hl-value">abc123...</span>
+
+{
+  <span class="hl-key">"productCode"</span>: <span class="hl-str">"SAVISCHOOLS"</span>,
+  <span class="hl-key">"jobTypeCode"</span>: <span class="hl-str">"WHATSAPP_ABSENT"</span>,
+  <span class="hl-key">"externalId"</span>:  <span class="hl-str">"1093"</span>
+}</pre></div>
+            </div>
+            <div class="params-title">Response</div>
+            <div class="code-block">
+              <div class="code-content"><pre>{
+  <span class="hl-key">"instanceId"</span>: <span class="hl-num">42</span>,
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Job enqueued successfully."</span>
+}</pre></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DELETE ── -->
+      <div class="api-section" id="section-delete">
+        <div class="api-section-header">
+          <span class="method-badge badge-del" style="font-size:13px;padding:4px 12px">DELETE</span>
+          <span class="api-section-title">Delete Schedule</span>
+        </div>
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <code class="endpoint-path">/api/external/schedule</code>
+            <span class="endpoint-desc">Schedule permanently remove karo</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-content"><pre><span class="hl-method">DELETE</span> <span class="hl-url">https://scheduler.savischools.com/api/external/schedule</span>
+<span class="hl-header">Content-Type:</span> <span class="hl-value">application/json</span>
+<span class="hl-header">X-SaviSchedular-Key:</span> <span class="hl-value">abc123...</span>
+
+{
+  <span class="hl-key">"productCode"</span>: <span class="hl-str">"SAVISCHOOLS"</span>,
+  <span class="hl-key">"jobTypeCode"</span>: <span class="hl-str">"WHATSAPP_ABSENT"</span>,
+  <span class="hl-key">"externalId"</span>:  <span class="hl-str">"1093"</span>
+}</pre></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right -->
+  </div><!-- /grid -->
+
+  <!-- ══ LIVE TESTER ══ -->
+  <div class="tester-section" id="section-tester">
+    <h2>🧪 Live API Tester</h2>
+    <p>Yahan se directly API test kar sakte ho browser se hi</p>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Base URL</label>
+        <input type="text" id="t-baseurl" value="http://localhost:44548" placeholder="https://scheduler.savischools.com">
+      </div>
+      <div class="form-group">
+        <label>API Key *</label>
+        <input type="text" id="t-key" placeholder="Paste your X-SaviSchedular-Key here">
+      </div>
+      <div class="form-group">
+        <label>Action</label>
+        <select id="t-action" onchange="updateTesterUI()">
+          <option value="create">POST — Create/Update Schedule</option>
+          <option value="status">GET — Check Status</option>
+          <option value="trigger">POST — Manual Trigger</option>
+          <option value="delete">DELETE — Remove Schedule</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Product Code *</label>
+        <input type="text" id="t-product" value="SAVISCHOOLS" placeholder="SAVISCHOOLS">
+      </div>
+      <div class="form-group">
+        <label>Job Type Code *</label>
+        <input type="text" id="t-jobtype" value="WHATSAPP_ABSENT" placeholder="WHATSAPP_ABSENT">
+      </div>
+      <div class="form-group">
+        <label>External ID (SchoolId) *</label>
+        <input type="text" id="t-extid" placeholder="1093">
+      </div>
+      <div class="form-group" id="tg-clientname">
+        <label>Client Name</label>
+        <input type="text" id="t-clientname" placeholder="Delhi Public School">
+      </div>
+      <div class="form-group" id="tg-hour">
+        <label>Scheduled Hour (0-23)</label>
+        <input type="number" id="t-hour" value="10" min="0" max="23">
+      </div>
+      <div class="form-group" id="tg-minute">
+        <label>Scheduled Minute</label>
+        <input type="number" id="t-minute" value="0" min="0" max="59">
+      </div>
+      <div class="form-group full" id="tg-payload">
+        <label>Payload JSON (extra params)</label>
+        <textarea id="t-payload" placeholder='{"companyId":"1","branchId":"5"}'></textarea>
+      </div>
+    </div>
+
+    <button class="btn-test" id="test-btn" onclick="runTest()">
+      <span id="test-spinner" class="spinner"></span>
+      <span id="test-label">▶ Send Request</span>
+    </button>
+
+    <div class="response-area" id="response-area">
+      <div class="response-status">
+        <span class="status-pill" id="resp-status">—</span>
+        <span style="color:var(--text-muted);font-size:12px" id="resp-time"></span>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">Response</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-content"><pre id="resp-body" style="white-space:pre-wrap;word-break:break-all"></pre></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+function scrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function updateTesterUI() {
+  const action = document.getElementById('t-action').value;
+  const showFor = {
+    create:  ['tg-clientname','tg-hour','tg-minute','tg-payload'],
+    status:  [],
+    trigger: [],
+    delete:  [],
+  };
+  ['tg-clientname','tg-hour','tg-minute','tg-payload'].forEach(id => {
+    document.getElementById(id).style.display = showFor[action].includes(id) ? '' : 'none';
+  });
+}
+updateTesterUI();
+
+async function runTest() {
+  const baseUrl  = document.getElementById('t-baseurl').value.trim().replace(/\/$/, '');
+  const key      = document.getElementById('t-key').value.trim();
+  const action   = document.getElementById('t-action').value;
+  const product  = document.getElementById('t-product').value.trim().toUpperCase();
+  const jobtype  = document.getElementById('t-jobtype').value.trim().toUpperCase();
+  const extid    = document.getElementById('t-extid').value.trim();
+
+  if (!key)    return showToast('API Key required!', 'error');
+  if (!extid)  return showToast('External ID required!', 'error');
+  if (!product)return showToast('Product Code required!', 'error');
+
+  const btn     = document.getElementById('test-btn');
+  const spinner = document.getElementById('test-spinner');
+  const label   = document.getElementById('test-label');
+  btn.disabled  = true; spinner.style.display = 'block'; label.textContent = 'Sending...';
+
+  const headers = { 'Content-Type': 'application/json', 'X-SaviSchedular-Key': key };
+  let url, method, body;
+  const t0 = Date.now();
+
+  if (action === 'create') {
+    url    = `${baseUrl}/api/external/schedule`;
+    method = 'POST';
+    let payload = {};
+    try { payload = JSON.parse(document.getElementById('t-payload').value || '{}'); } catch {}
+    body = JSON.stringify({
+      productCode:     product,
+      jobTypeCode:     jobtype,
+      externalId:      extid,
+      clientName:      document.getElementById('t-clientname').value || `Client-${extid}`,
+      scheduledHour:   +document.getElementById('t-hour').value,
+      scheduledMinute: +document.getElementById('t-minute').value,
+      payloadJson:     JSON.stringify(payload) || null,
+      isActive:        true
+    });
+  } else if (action === 'status') {
+    url    = `${baseUrl}/api/external/schedule?productCode=${product}&externalId=${extid}`;
+    method = 'GET';
+  } else if (action === 'trigger') {
+    url    = `${baseUrl}/api/external/trigger`;
+    method = 'POST';
+    body   = JSON.stringify({ productCode: product, jobTypeCode: jobtype, externalId: extid });
+  } else if (action === 'delete') {
+    url    = `${baseUrl}/api/external/schedule`;
+    method = 'DELETE';
+    body   = JSON.stringify({ productCode: product, jobTypeCode: jobtype, externalId: extid });
+  }
+
+  try {
+    const opts = { method, headers };
+    if (body) opts.body = body;
+    const res  = await fetch(url, opts);
+    const ms   = Date.now() - t0;
+    const data = await res.json().catch(() => ({}));
+    const statusEl = document.getElementById('resp-status');
+    statusEl.textContent = res.status + ' ' + res.statusText;
+    statusEl.className   = `status-pill ${res.ok ? 'status-2xx' : 'status-4xx'}`;
+    document.getElementById('resp-time').textContent = `${ms}ms`;
+    document.getElementById('resp-body').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('response-area').style.display = 'block';
+    showToast(res.ok ? 'Request successful!' : 'Request failed', res.ok ? 'success' : 'error');
+  } catch(e) {
+    document.getElementById('resp-status').textContent = 'Network Error';
+    document.getElementById('resp-status').className   = 'status-pill status-4xx';
+    document.getElementById('resp-body').textContent   = e.message;
+    document.getElementById('response-area').style.display = 'block';
+    showToast('Network error — check base URL', 'error');
+  } finally {
+    btn.disabled = false; spinner.style.display = 'none'; label.textContent = '▶ Send Request';
+  }
+}
+</script>
+</body>
+</html>

@@ -354,7 +354,6 @@ namespace SaviSchedular.Services
                         ji.*,
                         pc.ClientName, pc.ExternalId, pc.CustomBaseUrl,
                         p.ProductName, p.ProductCode, p.BaseUrl, p.ApiToken, p.TokenType, p.TokenHeaderName,
-                        p.AuthType, p.TokenUrl, p.ClientId, p.ClientSecret, p.RsaPrivateKey, p.RsaPublicKey, p.Audience, p.Issuer,
                         jt.JobTypeCode, jt.JobTypeName, jt.DefaultApiPath, jt.HttpMethod
                     FROM SchedulerJobInstances ji
                     JOIN ProductClients pc  ON pc.ClientId  = ji.ClientId
