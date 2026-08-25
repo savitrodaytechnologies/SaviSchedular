@@ -245,15 +245,18 @@ namespace SaviSchedular.Models
 
     public class ExternalScheduleRequest
     {
-        public string ProductCode     { get; set; }
-        public string JobTypeCode     { get; set; }
-        public string ExternalId      { get; set; }
-        public string ClientName      { get; set; }
-        public int    ScheduledHour   { get; set; }
-        public int    ScheduledMinute { get; set; }
-        public string PayloadJson     { get; set; }
-        public bool   IsActive        { get; set; }
-        public string TimeZone        { get; set; }
+        public string ProductCode             { get; set; }
+        public string JobTypeCode             { get; set; }
+        public string ExternalId              { get; set; }
+        public string ClientName              { get; set; }
+        public int    ScheduledHour           { get; set; }
+        public int    ScheduledMinute         { get; set; }
+        public string CustomApiPath         { get; set; }
+        public string CustomApiToken        { get; set; }
+        public string PayloadJson             { get; set; }
+        public bool   IsActive                { get; set; }
+        public bool   RunOnHolidays           { get; set; }
+        public string TimeZone                { get; set; }
     }
 
     public class ExternalTriggerRequest

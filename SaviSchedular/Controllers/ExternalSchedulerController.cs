@@ -135,17 +135,18 @@ namespace SaviSchedular.Controllers
                     {
                         instanceId = conn.ExecuteScalar<long>(@"
                             INSERT INTO SchedulerJobInstances
-                                (ClientId, ProductId, JobTypeId, PayloadJson, ScheduledHour, ScheduledMinute,
+                                (ClientId, ProductId, JobTypeId, CustomApiPath, CustomApiToken, PayloadJson, ScheduledHour, ScheduledMinute,
                                  TimeZone, IsActive, RunOnHolidays, MisfireThresholdMinutes, CreatedAt, UpdatedAt, CreatedBy)
                             VALUES
-                                (@ClientId, @ProductId, @JobTypeId, @PayloadJson, @ScheduledHour, @ScheduledMinute,
-                                 @TimeZone, @IsActive, 0, 15, @Now, @Now, @By);
+                                (@ClientId, @ProductId, @JobTypeId, @CustomApiPath, @CustomApiToken, @PayloadJson, @ScheduledHour, @ScheduledMinute,
+                                 @TimeZone, @IsActive, @RunOnHolidays, 15, @Now, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
                             new {
                                 ClientId = clientId, ProductId = product.ProductId, JobTypeId = jobType.JobTypeId,
+                                CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
                                 req.PayloadJson, req.ScheduledHour, req.ScheduledMinute,
                                 TimeZone = req.TimeZone ?? "India Standard Time",
-                                IsActive = req.IsActive,
+                                IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
                                 Now = DateTime.Now, By = apiClient.ClientName
                             });
                     }
@@ -154,15 +155,20 @@ namespace SaviSchedular.Controllers
                         instanceId = existing.InstanceId;
                         conn.Execute(@"
                             UPDATE SchedulerJobInstances SET
+                                CustomApiPath   = COALESCE(@CustomApiPath, CustomApiPath),
+                                CustomApiToken  = COALESCE(@CustomApiToken, CustomApiToken),
                                 PayloadJson     = @PayloadJson,
                                 ScheduledHour   = @Hour,
                                 ScheduledMinute = @Minute,
                                 IsActive        = @IsActive,
+                                RunOnHolidays   = @RunOnHolidays,
                                 UpdatedAt       = @Now
                             WHERE InstanceId = @Id",
                             new {
+                                CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
                                 PayloadJson = req.PayloadJson, Hour = req.ScheduledHour,
                                 Minute = req.ScheduledMinute, IsActive = req.IsActive,
+                                RunOnHolidays = req.RunOnHolidays ? 1 : 0,
                                 Now = DateTime.Now, Id = instanceId
                             });
                     }
