@@ -344,11 +344,28 @@ namespace SaviSchedular.Services
 
         public static string GetJobId(long instanceId) => $"savi-instance-{instanceId}";
 
+        private static void EnsureJobInstancesSchema(SqlConnection conn)
+        {
+            try
+            {
+                string sql = @"
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SchedulerJobInstances') AND name = 'LastStatus')
+                    BEGIN
+                        ALTER TABLE [dbo].[SchedulerJobInstances] ADD 
+                            [LastStatus] NVARCHAR(50) NULL,
+                            [LastRunAt]  DATETIME     NULL;
+                    END";
+                conn.Execute(sql);
+            }
+            catch { }
+        }
+
         private static SchedulerJobInstanceModel LoadInstance(long instanceId)
         {
             using (var conn = new SqlConnection(SchedConn))
             {
                 conn.Open();
+                EnsureJobInstancesSchema(conn);
                 return conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(@"
                     SELECT
                         ji.InstanceId, ji.ClientId, ji.ProductId, ji.JobTypeId, ji.CustomApiPath, ji.CustomApiToken, ji.PayloadJson,
