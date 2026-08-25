@@ -3,710 +3,554 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SaviSchedular — Admin Dashboard</title>
-<meta name="description" content="Universal Scheduler Admin Interface — Manage school job schedules, API configs, logs and settings.">
+<title>SaviSchedular v2.0 — Admin Console</title>
+<meta name="description" content="SaviSchedular v2.0 — Universal Multi-Product Scheduler Admin Console">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:           #f1f5f9;
-  --sidebar:      #ffffff;
-  --card:         #ffffff;
-  --card-hover:   #f8faff;
-  --border:       #e2e8f0;
-  --border-hover: #c7d2fe;
-  --accent:       #6366f1;
-  --accent2:      #8b5cf6;
-  --accent-glow:  rgba(99,102,241,0.15);
-  --success:      #059669;
-  --error:        #dc2626;
-  --warning:      #d97706;
-  --info:         #2563eb;
-  --running:      #0891b2;
-  --text:         #1e293b;
-  --text-muted:   #64748b;
-  --text-dim:     #475569;
-  --input-bg:     #f8fafc;
-  --modal-bg:     #ffffff;
-  --sidebar-w:    260px;
-  --header-h:     64px;
-  --radius:       12px;
-  --radius-sm:    8px;
-  --shadow:       0 1px 8px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
-  --shadow-md:    0 4px 20px rgba(0,0,0,0.12);
-  --transition:   all 0.2s cubic-bezier(0.4,0,0.2,1);
+  --bg:#f1f5f9; --sidebar:#0f172a; --sidebar-w:260px; --header-h:64px;
+  --card:#ffffff; --border:#e2e8f0; --radius:12px; --radius-sm:8px;
+  --accent:#6366f1; --accent2:#8b5cf6; --accent-glow:rgba(99,102,241,0.15);
+  --success:#059669; --error:#dc2626; --warning:#d97706; --running:#0891b2; --skipped:#64748b;
+  --text:#1e293b; --text-muted:#64748b; --input-bg:#f8fafc;
+  --shadow:0 1px 8px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 20px rgba(0,0,0,0.12); --transition:all 0.2s ease;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overflow:hidden}
-
-/* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:#f1f5f9}
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
-::-webkit-scrollbar-thumb:hover{background:#94a3b8}
-
-/* ── LAYOUT ── */
 .layout{display:flex;height:100vh}
 
 /* ── SIDEBAR ── */
-.sidebar{
-  width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;
-  background:var(--sidebar);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:100;
-  overflow:hidden;box-shadow:2px 0 8px rgba(0,0,0,0.06);
-}
-.sidebar-brand{
-  padding:20px 20px 16px;
-  background:linear-gradient(135deg,#6366f1,#8b5cf6);
-  border-bottom:1px solid rgba(99,102,241,0.3);flex-shrink:0;
-}
-.brand-logo{
-  display:flex;align-items:center;gap:10px;margin-bottom:4px;
-}
-.brand-icon{
-  width:36px;height:36px;border-radius:10px;
-  background:rgba(255,255,255,0.2);
-  display:flex;align-items:center;justify-content:center;font-size:18px;
-  flex-shrink:0;border:1px solid rgba(255,255,255,0.3);
-}
-.brand-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.3px}
-.brand-sub{font-size:11px;color:rgba(255,255,255,0.7);padding-left:46px;font-weight:500}
-.sidebar-nav{padding:12px 8px;flex:1;overflow-y:auto}
-.nav-section{font-size:10px;font-weight:700;letter-spacing:1px;color:#94a3b8;
-  padding:14px 12px 6px;text-transform:uppercase}
-.nav-item{
-  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);
-  cursor:pointer;color:var(--text-muted);font-size:13.5px;font-weight:500;
-  transition:var(--transition);margin-bottom:2px;position:relative;
-}
-.nav-item:hover{background:#f1f5f9;color:var(--text)}
-.nav-item.active{
-  background:linear-gradient(135deg,#eef2ff,#f5f3ff);
-  color:var(--accent);border:1px solid #c7d2fe;
-}
-.nav-item.active::before{
-  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
-  width:3px;height:60%;background:linear-gradient(var(--accent),var(--accent2));
-  border-radius:0 3px 3px 0;
-}
-.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
-.nav-badge{
-  margin-left:auto;background:var(--error);color:#fff;
-  font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;
-}
-.sidebar-footer{
-  padding:12px;border-top:1px solid var(--border);flex-shrink:0;
-}
-.hangfire-link{
-  display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-sm);
-  background:#f8fafc;color:var(--text-muted);text-decoration:none;
-  font-size:12px;font-weight:500;transition:var(--transition);border:1px solid var(--border);
-}
-.hangfire-link:hover{background:#eef2ff;color:var(--accent);border-color:#c7d2fe}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;background:var(--sidebar);
+  display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:100;overflow-y:auto}
+.sidebar-brand{padding:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;align-items:center;gap:12px}
+.brand-icon{width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand-text h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:0.3px}
+.brand-text p{font-size:11px;color:rgba(255,255,255,0.65)}
+.sidebar-section{padding:16px 12px 4px;font-size:10px;font-weight:700;color:#475569;
+  letter-spacing:1px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;margin:1px 8px;
+  border-radius:8px;cursor:pointer;transition:var(--transition);color:#94a3b8;font-size:13px;font-weight:500}
+.nav-item:hover{background:rgba(255,255,255,0.08);color:#e2e8f0}
+.nav-item.active{background:rgba(99,102,241,0.25);color:#a5b4fc;border-left:3px solid #6366f1}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid #1e293b;
+  font-size:11px;color:#475569;text-align:center}
 
-/* ── MAIN CONTENT ── */
+/* ── MAIN ── */
 .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-
-/* ── HEADER ── */
-.header{
-  height:var(--header-h);background:#ffffff;backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);display:flex;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,0.06);
-  padding:0 24px;gap:16px;position:sticky;top:0;z-index:50;flex-shrink:0;
-}
-.header-title{font-size:18px;font-weight:700;letter-spacing:-0.3px;flex:1}
-.header-sub{font-size:13px;color:var(--text-muted);font-weight:400}
-.header-actions{display:flex;align-items:center;gap:8px}
-.btn{
-  display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
-  border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;
-  border:none;transition:var(--transition);white-space:nowrap;
-}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-.btn-primary:hover{box-shadow:0 4px 20px var(--accent-glow);transform:translateY(-1px)}
-.btn-ghost{background:#f8fafc;color:var(--text-muted);border:1px solid var(--border)}
-.btn-ghost:hover{background:#f1f5f9;color:var(--text);border-color:var(--border-hover)}
-.btn-success{background:#d1fae5;color:var(--success);border:1px solid #6ee7b7}
-.btn-success:hover{background:#a7f3d0}
-.btn-danger{background:#fee2e2;color:var(--error);border:1px solid #fca5a5}
-.btn-danger:hover{background:#fecaca}
-.btn-warning{background:#fef3c7;color:var(--warning);border:1px solid #fcd34d}
-.btn-warning:hover{background:#fde68a}
-.btn-sm{padding:5px 10px;font-size:12px}
-.btn-icon{padding:7px;border-radius:var(--radius-sm)}
-
-/* ── CONTENT AREA ── */
-.content{flex:1;overflow-y:auto;padding:24px}
-.section{display:none}
-.section.active{display:block}
-
-/* ── STAT CARDS ── */
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
-.stat-card{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:18px;transition:var(--transition);cursor:default;position:relative;overflow:hidden;
-  box-shadow:var(--shadow);
-}
-.stat-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  opacity:0;transition:var(--transition);
-}
-.stat-card:hover{background:var(--card-hover);border-color:var(--border-hover);transform:translateY(-2px);box-shadow:var(--shadow-md)}
-.stat-card:hover::before{opacity:1}
-.stat-icon{font-size:22px;margin-bottom:10px}
-.stat-value{font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1}
-.stat-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-top:4px}
-.stat-success .stat-value{color:var(--success)}
-.stat-error   .stat-value{color:var(--error)}
-.stat-warning .stat-value{color:var(--warning)}
-.stat-info    .stat-value{color:var(--info)}
-.stat-running .stat-value{color:var(--running)}
+.header{height:var(--header-h);background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.header-left h2{font-size:18px;font-weight:700;color:var(--text)}
+.header-left p{font-size:12px;color:var(--text-muted)}
+.header-right{display:flex;align-items:center;gap:12px}
+.btn-refresh{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;
+  border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text-muted);
+  transition:var(--transition);font-family:inherit}
+.btn-refresh:hover{background:var(--bg);border-color:var(--accent);color:var(--accent)}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
 
 /* ── CARDS ── */
-.card{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow);
-}
-.card-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px;border-bottom:1px solid var(--border);
-}
-.card-title{font-size:14px;font-weight:600}
-.card-body{padding:18px}
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:700;color:var(--text)}
+.card-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);
+  padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.stat-value{font-size:28px;font-weight:800;color:var(--text);line-height:1}
+.stat-card.success .stat-value{color:var(--success)}
+.stat-card.error .stat-value{color:var(--error)}
+.stat-card.warning .stat-value{color:var(--warning)}
+.stat-card.running .stat-value{color:var(--running)}
+.stat-card.accent .stat-value{color:var(--accent)}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar-spacer{flex:1}
+.search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+  border-radius:8px;padding:0 12px;min-width:220px}
+.search-box input{border:none;outline:none;background:transparent;font-family:inherit;
+  font-size:13px;padding:8px 0;flex:1}
+.search-box .icon{color:var(--text-muted);font-size:14px}
+select.filter-select{border:1px solid var(--border);border-radius:8px;padding:8px 12px;
+  font-family:inherit;font-size:13px;background:#fff;cursor:pointer;outline:none;color:var(--text)}
+select.filter-select:focus{border-color:var(--accent)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);border:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#4f46e5;transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,0.4)}
+.btn-danger{background:#fee2e2;color:var(--error);border:1px solid #fecaca}
+.btn-danger:hover{background:var(--error);color:#fff}
+.btn-success{background:#d1fae5;color:var(--success);border:1px solid #a7f3d0}
+.btn-success:hover{background:var(--success);color:#fff}
+.btn-secondary{background:#f1f5f9;color:var(--text-muted);border:1px solid var(--border)}
+.btn-secondary:hover{background:#e2e8f0;color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:6px;border-radius:6px;background:#f1f5f9;border:1px solid var(--border);
+  cursor:pointer;font-size:14px;transition:var(--transition)}
+.btn-icon:hover{background:#e2e8f0}
 
 /* ── TABLE ── */
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse}
-th{
-  padding:10px 14px;text-align:left;font-size:11px;font-weight:600;
-  letter-spacing:0.5px;text-transform:uppercase;color:var(--text-muted);
-  border-bottom:1px solid var(--border);white-space:nowrap;background:#f8fafc;
-}
-td{
-  padding:12px 14px;border-bottom:1px solid #f1f5f9;
-  font-size:13px;vertical-align:middle;
-}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#f8faff}
-.td-actions{display:flex;gap:6px;align-items:center}
+.table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#f8fafc;font-weight:600;padding:10px 14px;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text-muted)}
+tbody tr{border-bottom:1px solid #f1f5f9;transition:var(--transition)}
+tbody tr:hover{background:#f8faff}
+tbody td{padding:10px 14px;vertical-align:middle}
+tbody tr:last-child{border-bottom:none}
+.actions-cell{display:flex;gap:6px;align-items:center}
 
 /* ── BADGES ── */
-.badge{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;
-}
-.badge-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
-.badge-error  {background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
-.badge-warning{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
-.badge-info   {background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
-.badge-muted  {background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
-.badge-running{background:#cffafe;color:#164e63;border:1px solid #67e8f9}
-.badge-dot::before{content:'●';font-size:8px}
-
-/* ── FORM ── */
-.form-group{margin-bottom:16px}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-label{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:6px}
-input,select,textarea{
-  width:100%;background:var(--input-bg);border:1px solid var(--border);
-  border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;
-  font-size:13px;font-family:inherit;transition:var(--transition);
-}
-input:focus,select:focus,textarea:focus{
-  outline:none;border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(99,102,241,0.12);
-}
-input::placeholder,textarea::placeholder{color:#94a3b8}
-select option{background:#ffffff;color:var(--text)}
-textarea{resize:vertical;min-height:80px}
-.form-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
-.toggle-wrap{display:flex;align-items:center;gap:10px}
-.toggle{
-  width:42px;height:24px;background:#cbd5e1;border-radius:12px;
-  position:relative;cursor:pointer;transition:var(--transition);border:none;flex-shrink:0;
-}
-.toggle::after{
-  content:'';position:absolute;width:18px;height:18px;background:#fff;
-  border-radius:50%;top:3px;left:3px;transition:var(--transition);
-  box-shadow:0 1px 4px rgba(0,0,0,0.2);
-}
-.toggle.on{background:var(--accent)}
-.toggle.on::after{left:21px}
-.toggle-label{font-size:13px;font-weight:500}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;
+  font-size:11px;font-weight:600;white-space:nowrap}
+.badge-success{background:#d1fae5;color:#065f46}
+.badge-error{background:#fee2e2;color:#991b1b}
+.badge-warning{background:#fef3c7;color:#92400e}
+.badge-running{background:#cffafe;color:#164e63}
+.badge-skipped{background:#f1f5f9;color:#475569}
+.badge-active{background:#d1fae5;color:#065f46}
+.badge-inactive{background:#fee2e2;color:#991b1b}
 
 /* ── MODAL ── */
-.overlay{
-  position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);
-  z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;
-}
-.overlay.open{display:flex}
-.modal{
-  background:var(--modal-bg);border:1px solid var(--border);border-radius:16px;
-  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
-  box-shadow:0 8px 40px rgba(0,0,0,0.16),0 2px 8px rgba(0,0,0,0.08);
-  animation:modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
-}
-.modal-lg{max-width:720px}
-@keyframes modalIn{from{opacity:0;transform:scale(0.92) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.modal-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 22px;border-bottom:1px solid var(--border);
-}
-.modal-title{font-size:15px;font-weight:700}
-.modal-close{
-  width:30px;height:30px;border-radius:50%;background:#f1f5f9;
-  border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:16px;
-  display:flex;align-items:center;justify-content:center;transition:var(--transition);
-}
-.modal-close:hover{background:#fee2e2;color:var(--error);border-color:#fca5a5}
-.modal-body{padding:22px}
-.modal-footer{
-  display:flex;justify-content:flex-end;gap:10px;
-  padding:14px 22px;border-top:1px solid var(--border);
-}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;
+  overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);animation:modalIn 0.25s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:none}}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);
+  padding:4px;border-radius:6px;line-height:1}
+.modal-close:hover{background:#f1f5f9;color:var(--text)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;
+  position:sticky;bottom:0;background:#fff;z-index:1}
 
-/* ── TOAST ── */
-.toast-wrap{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
-.toast{
-  display:flex;align-items:center;gap:12px;
-  background:#ffffff;border:1px solid var(--border);border-radius:10px;
-  padding:12px 16px;min-width:280px;max-width:380px;
-  box-shadow:0 4px 16px rgba(0,0,0,0.12);animation:toastIn 0.3s ease;
-}
-@keyframes toastIn{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:translateX(0)}}
-.toast-icon{font-size:18px;flex-shrink:0}
-.toast-msg{font-size:13px;font-weight:500;flex:1}
-.toast-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0;flex-shrink:0}
-.toast-success{border-left:3px solid var(--success)}
-.toast-error  {border-left:3px solid var(--error)}
-.toast-info   {border-left:3px solid var(--info)}
-.toast-warning{border-left:3px solid var(--warning)}
-
-/* ── EMPTY STATE ── */
-.empty{text-align:center;padding:60px 20px;color:var(--text-muted)}
-.empty-icon{font-size:48px;margin-bottom:12px;opacity:0.5}
-.empty-text{font-size:14px;font-weight:600;color:var(--text-dim)}
-.empty-sub{font-size:12px;margin-top:4px;color:var(--text-muted)}
-
-/* ── LOADING ── */
-.spinner{
-  width:20px;height:20px;border:2px solid #e2e8f0;
-  border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;
-}
-.spinner-sm{width:14px;height:14px;border-width:2px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-row td{text-align:center;padding:40px;color:var(--text-muted)}
-.skeleton{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:skeleton 1.5s infinite;border-radius:4px;height:14px}
-@keyframes skeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-/* ── FILTER BAR ── */
-.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--border)}
-.filter-bar{background:#f8fafc}
-.filter-bar input,.filter-bar select{width:auto;flex:1;min-width:120px;max-width:200px;padding:7px 10px;font-size:12px}
-.filter-bar label{font-size:11px;margin-bottom:0;white-space:nowrap}
+/* ── FORMS ── */
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input[type=text],input[type=number],input[type=password],select,textarea{
+  width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:13px;background:var(--input-bg);color:var(--text);
+  transition:var(--transition);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-glow)}
+textarea{resize:vertical;min-height:80px}
+.toggle-wrap{display:flex;align-items:center;gap:10px}
+.toggle{position:relative;width:44px;height:24px;display:inline-block}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:var(--transition)}
+.toggle-slider::before{content:"";position:absolute;width:18px;height:18px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;transition:var(--transition)}
+.toggle input:checked + .toggle-slider{background:var(--success)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px)}
 
 /* ── PAGINATION ── */
-.pagination{display:flex;align-items:center;gap:6px;padding:12px 18px;border-top:1px solid var(--border)}
-.page-btn{
-  width:30px;height:30px;border-radius:6px;background:#ffffff;
-  border:1px solid var(--border);color:var(--text-muted);cursor:pointer;
-  font-size:12px;display:flex;align-items:center;justify-content:center;transition:var(--transition);
-}
-.page-btn:hover{border-color:var(--accent);color:var(--accent);background:#eef2ff}
-.page-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.page-info{font-size:12px;color:var(--text-muted);margin:0 8px}
+.pagination{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:16px}
+.pagination button{padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+  background:#fff;font-family:inherit;font-size:12px;cursor:pointer;transition:var(--transition);color:var(--text-muted)}
+.pagination button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.pagination button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pagination button:disabled{opacity:0.4;cursor:not-allowed}
+.pagination-info{font-size:12px;color:var(--text-muted);margin-right:8px}
 
-/* ── DETAIL ROW ── */
-.detail-row{background:#f5f3ff;border-left:3px solid var(--accent)}
-.detail-box{padding:12px 14px;font-size:12px;color:var(--text-dim)}
-.detail-box pre{white-space:pre-wrap;word-break:break-all;background:#1e293b;color:#e2e8f0;padding:10px;border-radius:6px;margin-top:6px;font-size:11px;max-height:200px;overflow-y:auto}
+/* ── TOAST ── */
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;
+  background:#fff;box-shadow:var(--shadow-md);min-width:260px;max-width:380px;
+  border-left:4px solid var(--accent);animation:slideIn 0.3s ease;font-size:13px}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--error)}
+.toast.warning{border-left-color:var(--warning)}
+@keyframes slideIn{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:none}}
+@keyframes slideOut{to{opacity:0;transform:translateX(100%)}}
 
-/* ── DIVIDER ── */
-.divider{height:1px;background:var(--border);margin:16px 0}
+/* ── KEY DISPLAY ── */
+.api-key-box{background:#0f172a;border-radius:8px;padding:14px;font-family:monospace;
+  font-size:13px;color:#a5f3fc;word-break:break-all;border:1px solid #1e293b;margin:10px 0}
 
-/* ── SEARCH INPUT ── */
-.search-wrap{position:relative}
-.search-wrap input{padding-left:34px}
-.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none}
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px}
 
-/* ── STATUS DOT ── */
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-.dot-green{background:var(--success)}
-.dot-red{background:var(--error)}
-.dot-yellow{background:var(--warning)}
-.dot-blue{background:var(--info)}
-.dot-cyan{background:var(--running)}
-.dot-gray{background:var(--text-muted)}
+/* ── LOADING ── */
+.loading-row td{text-align:center;padding:30px;color:var(--text-muted)}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── TEST RESULT ── */
-.test-result{
-  border-radius:var(--radius-sm);padding:12px;margin-top:12px;
-  display:none;font-size:12px;line-height:1.6;
-}
-.test-result.show{display:block}
-.test-ok{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46}
-.test-fail{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b}
-
-/* ── REFRESH INDICATOR ── */
-.refresh-indicator{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:5px}
-
-/* ── RESPONSIVE ── */
-@media(max-width:900px){
-  .sidebar{transform:translateX(-100%)}
-  .main{margin-left:0}
-  .form-row,.form-row-3{grid-template-columns:1fr}
-  .stat-grid{grid-template-columns:repeat(2,1fr)}
-}
+/* ── SECTION PAGES ── */
+.page{display:none}
+.page.active{display:block}
 </style>
 </head>
 <body>
-
 <div class="layout">
-<!-- ════════════════════════════════════════════ SIDEBAR ════ -->
-<aside class="sidebar">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-logo">
-      <div class="brand-icon">⚡</div>
-      <span class="brand-name">SaviSchedular</span>
+    <div class="brand-icon">⚡</div>
+    <div class="brand-text">
+      <h1>SaviSchedular</h1>
+      <p>v2.0 Admin Console</p>
     </div>
-    <div class="brand-sub">Universal Admin Console</div>
   </div>
 
-  <nav class="sidebar-nav">
-    <div class="nav-section">Main</div>
-    <div class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
-      <span class="nav-icon">📊</span> Dashboard
-    </div>
-    <div class="nav-item" onclick="showSection('schedules')" id="nav-schedules">
-      <span class="nav-icon">📅</span> Schedules
-    </div>
-    <div class="nav-item" onclick="showSection('apiconfig')" id="nav-apiconfig">
-      <span class="nav-icon">🔌</span> API Config
-    </div>
-    <div class="nav-item" onclick="showSection('jobtypes')" id="nav-jobtypes">
-      <span class="nav-icon">⚙️</span> Job Types
-    </div>
-
-    <div class="nav-section">Monitoring</div>
-    <div class="nav-item" onclick="showSection('logs')" id="nav-logs">
-      <span class="nav-icon">📋</span> Execution Logs
-      <span class="nav-badge" id="failed-badge" style="display:none">0</span>
-    </div>
-    <div class="nav-item" onclick="showSection('audit')" id="nav-audit">
-      <span class="nav-icon">🔍</span> Audit Trail
-    </div>
-
-    <div class="nav-section">Configuration</div>
-    <div class="nav-item" onclick="showSection('settings')" id="nav-settings">
-      <span class="nav-icon">🛠️</span> Global Settings
-    </div>
-  </nav>
-
-  <div class="sidebar-footer">
-    <a href="/hangfire" target="_blank" class="hangfire-link">
-      <span>🔥</span> Hangfire Dashboard <span style="margin-left:auto;font-size:10px">↗</span>
-    </a>
+  <div class="sidebar-section">Overview</div>
+  <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+    <span class="icon">📊</span> Dashboard
   </div>
-</aside>
 
-<!-- ════════════════════════════════════════════ MAIN ════ -->
+  <div class="sidebar-section">Management</div>
+  <div class="nav-item" onclick="showPage('products')" id="nav-products">
+    <span class="icon">📦</span> Products
+  </div>
+  <div class="nav-item" onclick="showPage('jobtypes')" id="nav-jobtypes">
+    <span class="icon">⚙️</span> Job Types
+  </div>
+  <div class="nav-item" onclick="showPage('clients')" id="nav-clients">
+    <span class="icon">👥</span> Clients
+  </div>
+  <div class="nav-item" onclick="showPage('schedules')" id="nav-schedules">
+    <span class="icon">⏰</span> Schedules
+  </div>
+
+  <div class="sidebar-section">Logs & Security</div>
+  <div class="nav-item" onclick="showPage('logs')" id="nav-logs">
+    <span class="icon">📜</span> Execution Logs
+  </div>
+  <div class="nav-item" onclick="showPage('apiclients')" id="nav-apiclients">
+    <span class="icon">🔑</span> API Keys
+  </div>
+
+  <div class="sidebar-section">Config</div>
+  <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+    <span class="icon">🛠️</span> Global Settings
+  </div>
+  <div class="nav-item" onclick="window.open('/hangfire','_blank')">
+    <span class="icon">🔧</span> Hangfire Jobs
+  </div>
+
+  <div class="sidebar-footer">SaviSchedular v2.0 &copy; 2026</div>
+</nav>
+
+<!-- ══ MAIN ══ -->
 <div class="main">
-  <!-- HEADER -->
-  <header class="header">
-    <div>
-      <div class="header-title" id="page-title">Dashboard</div>
-      <div class="header-sub" id="page-sub">Universal Scheduler Overview</div>
+  <div class="header">
+    <div class="header-left">
+      <h2 id="page-title">Dashboard</h2>
+      <p id="page-subtitle">Overview of all scheduled jobs and activity</p>
     </div>
-    <div class="header-actions">
-      <div class="refresh-indicator" id="refresh-indicator"><span class="spinner spinner-sm"></span> Loading...</div>
-      <button class="btn btn-ghost btn-sm" onclick="refreshCurrentSection()" title="Refresh">🔄 Refresh</button>
-      <button class="btn btn-primary btn-sm" onclick="openAddScheduleModal()">+ Add Schedule</button>
+    <div class="header-right">
+      <button class="btn-refresh" onclick="refreshCurrentPage()">🔄 Refresh</button>
+      <a href="/hangfire" target="_blank" class="btn btn-secondary btn-sm">Hangfire ↗</a>
     </div>
-  </header>
+  </div>
 
-  <!-- CONTENT -->
   <div class="content">
 
-    <!-- ════ DASHBOARD ════ -->
-    <section id="section-dashboard" class="section active">
-      <div class="stat-grid">
-        <div class="stat-card"><div class="stat-icon">🏫</div><div class="stat-value" id="stat-schools">—</div><div class="stat-label">Active Schools</div></div>
-        <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-value" id="stat-jobs">—</div><div class="stat-label">Active Jobs</div></div>
-        <div class="stat-card stat-success"><div class="stat-icon">✅</div><div class="stat-value" id="stat-success">—</div><div class="stat-label">Success Today</div></div>
-        <div class="stat-card stat-error"><div class="stat-icon">❌</div><div class="stat-value" id="stat-failed">—</div><div class="stat-label">Failed Today</div></div>
-        <div class="stat-card stat-warning"><div class="stat-icon">⏭️</div><div class="stat-value" id="stat-skipped">—</div><div class="stat-label">Skipped Today</div></div>
-        <div class="stat-card stat-running"><div class="stat-icon">🔄</div><div class="stat-value" id="stat-running">—</div><div class="stat-label">Running Now</div></div>
+    <!-- ══ DASHBOARD ══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card"><div class="stat-label">Products</div><div class="stat-value" id="s-products">—</div></div>
+        <div class="stat-card accent"><div class="stat-label">Total Clients</div><div class="stat-value" id="s-clients">—</div></div>
+        <div class="stat-card"><div class="stat-label">Active Schedules</div><div class="stat-value" id="s-schedules">—</div></div>
+        <div class="stat-card success"><div class="stat-label">Success Today</div><div class="stat-value" id="s-success">—</div></div>
+        <div class="stat-card error"><div class="stat-label">Failed Today</div><div class="stat-value" id="s-failed">—</div></div>
+        <div class="stat-card running"><div class="stat-label">Running Now</div><div class="stat-value" id="s-running">—</div></div>
       </div>
+
       <div class="card">
-        <div class="card-header" style="flex-wrap:wrap;gap:10px">
-          <span class="card-title">🕐 Recent Activity</span>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="dash-search" placeholder="Search school, job..." onkeyup="if(event.key==='Enter')loadDashboard(1)" style="width:180px"></div>
-            <select id="dash-status" onchange="loadDashboard(1)" style="width:130px">
-              <option value="">All Status</option>
-              <option value="SUCCESS">SUCCESS</option>
-              <option value="FAILED">FAILED</option>
-              <option value="SKIPPED">SKIPPED</option>
-              <option value="RUNNING">RUNNING</option>
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="loadDashboard(1)">🔍 Filter</button>
-            <button class="btn btn-ghost btn-sm" onclick="clearDashFilter()">Reset</button>
+        <div class="card-header">
+          <div><div class="card-title">Recent Activity</div><div class="card-subtitle">Latest job execution logs</div></div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="dash-q" placeholder="Search client, job..." onkeydown="if(event.key==='Enter')loadDashboard(1)">
           </div>
+          <select class="filter-select" id="dash-status" onchange="loadDashboard(1)">
+            <option value="">All Status</option>
+            <option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
+          </select>
+          <select class="filter-select" id="dash-product" onchange="loadDashboard(1)">
+            <option value="">All Products</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('dash-q').value='';document.getElementById('dash-status').value='';document.getElementById('dash-product').value='';loadDashboard(1)">Reset</button>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>School</th><th>Job Type</th><th>Trigger</th><th>Started At</th><th>Duration</th><th>Status</th></tr></thead>
-            <tbody id="recent-logs"><tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr>
+              <th>Product</th><th>Client</th><th>ID</th><th>Job Type</th>
+              <th>Trigger</th><th>Started At</th><th>Duration</th><th>Status</th><th>Error</th>
+            </tr></thead>
+            <tbody id="dash-logs-body"><tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
         <div class="pagination" id="dash-pagination"></div>
       </div>
-    </section>
+    </div>
 
-    <!-- ════ SCHEDULES ════ -->
-    <section id="section-schedules" class="section">
+    <!-- ══ PRODUCTS ══ -->
+    <div class="page" id="page-products">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">📅 All Schedules</span>
-          <div style="display:flex;gap:8px">
-            <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="sch-search" placeholder="Search school..." oninput="filterSchedules()" style="width:200px"></div>
-            <button class="btn btn-primary btn-sm" onclick="openAddScheduleModal()">+ Add Schedule</button>
+          <div><div class="card-title">Products</div><div class="card-subtitle">Register your products (SaviSchools, 10xViral...)</div></div>
+          <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Code</th><th>Name</th><th>Base URL</th><th>Token Type</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="products-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ JOB TYPES ══ -->
+    <div class="page" id="page-jobtypes">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Job Types</div><div class="card-subtitle">Define job types per product</div></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="filter-select" id="jt-product-filter" onchange="loadJobTypes()">
+              <option value="">All Products</option>
+            </select>
+            <button class="btn btn-primary" onclick="openJobTypeModal()">+ Add Job Type</button>
           </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>School</th><th>Job Type</th><th>Scheduled Time</th><th>Timezone</th><th>Holidays</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="schedules-tbody"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Product</th><th>Code</th><th>Name</th><th>API Path</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="jobtypes-body"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- ════ API CONFIG ════ -->
-    <section id="section-apiconfig" class="section">
+    <!-- ══ CLIENTS ══ -->
+    <div class="page" id="page-clients">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">🔌 Per-School API Configuration</span>
-          <button class="btn btn-primary btn-sm" onclick="openApiConfigModal()">+ Add Config</button>
+          <div><div class="card-title">Clients</div><div class="card-subtitle">Schools / clients registered under each product</div></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="filter-select" id="cl-product-filter" onchange="loadClients()">
+              <option value="">All Products</option>
+            </select>
+            <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
+          </div>
         </div>
-        <div class="card-body" style="padding-bottom:0">
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
-            Configure a separate Base URL and API Path for each school.
-            If no config is set, the Global Default Base URL will be used.
-          </p>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="cl-q" placeholder="Search client, ID..." onkeydown="if(event.key==='Enter')loadClients()">
+          </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>School ID</th><th>Job Type</th><th>Base URL</th><th>API Path</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="apiconfig-tbody"><tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Product</th><th>Client Name</th><th>External ID</th><th>Custom Base URL</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="clients-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- ════ JOB TYPES ════ -->
-    <section id="section-jobtypes" class="section">
+    <!-- ══ SCHEDULES ══ -->
+    <div class="page" id="page-schedules">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">⚙️ Job Types</span>
-          <button class="btn btn-primary btn-sm" onclick="openJobTypeModal()">+ Add Job Type</button>
+          <div><div class="card-title">Schedules</div><div class="card-subtitle">Job schedule instances for each client</div></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="filter-select" id="sc-product-filter" onchange="loadSchedules()">
+              <option value="">All Products</option>
+            </select>
+            <button class="btn btn-primary" onclick="openScheduleModal()">+ Add Schedule</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Default API Path</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="jobtypes-tbody"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Time</th><th>Timezone</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="schedules-body"><tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- ════ LOGS ════ -->
-    <section id="section-logs" class="section">
+    <!-- ══ LOGS ══ -->
+    <div class="page" id="page-logs">
       <div class="card">
-        <div class="card-header"><span class="card-title">📋 Execution Logs</span><button class="btn btn-ghost btn-sm" onclick="loadLogs()">🔄 Refresh</button></div>
-        <div class="filter-bar">
-          <label>School ID</label><input type="number" id="log-schoolId" placeholder="All" style="width:100px">
-          <label>Job Type</label>
-          <select id="log-jobType" style="width:160px"><option value="">All Job Types</option></select>
-          <label>Status</label>
-          <select id="log-status" style="width:130px">
-            <option value="">All</option><option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
+        <div class="card-header">
+          <div><div class="card-title">Execution Logs</div><div class="card-subtitle">Full history of all job runs</div></div>
+          <button class="btn btn-danger btn-sm" onclick="purgeLogs()">🗑 Purge Old Logs</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="log-q" placeholder="Search client, job, error..." onkeydown="if(event.key==='Enter')loadLogs(1)">
+          </div>
+          <select class="filter-select" id="log-status" onchange="loadLogs(1)">
+            <option value="">All Status</option>
+            <option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
           </select>
-          <label>Days</label>
-          <select id="log-days" style="width:90px">
-            <option value="1">Today</option><option value="7" selected>7 Days</option>
-            <option value="30">30 Days</option><option value="90">90 Days</option>
+          <select class="filter-select" id="log-product" onchange="loadLogs(1)">
+            <option value="">All Products</option>
           </select>
-          <button class="btn btn-primary btn-sm" onclick="loadLogs()">🔍 Filter</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('log-q').value='';document.getElementById('log-status').value='';document.getElementById('log-product').value='';loadLogs(1)">Reset</button>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th></th><th>School</th><th>Job Type</th><th>Trigger</th><th>Started At</th><th>Duration</th><th>Status</th><th>HTTP</th></tr></thead>
-            <tbody id="logs-tbody"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>ID</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Trigger</th><th>Started At</th><th>Duration</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="logs-body"><tr class="loading-row"><td colspan="10"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
         <div class="pagination" id="logs-pagination"></div>
       </div>
-    </section>
+    </div>
 
-    <!-- ════ AUDIT ════ -->
-    <section id="section-audit" class="section">
+    <!-- ══ API KEYS ══ -->
+    <div class="page" id="page-apiclients">
       <div class="card">
-        <div class="card-header"><span class="card-title">🔍 Audit Trail</span><button class="btn btn-ghost btn-sm" onclick="loadAudit()">🔄 Refresh</button></div>
-        <div class="filter-bar">
-          <label>Table</label>
-          <select id="audit-table" style="width:200px">
-            <option value="">All Tables</option>
-            <option>SchedulerJobInstances</option><option>SchoolApiConfigs</option>
-            <option>SchedulerGlobalConfig</option><option>SchedulerJobTypes</option>
-          </select>
-          <label>Days</label>
-          <select id="audit-days" style="width:90px">
-            <option value="7">7 Days</option><option value="30" selected>30 Days</option><option value="90">90 Days</option>
-          </select>
-          <button class="btn btn-primary btn-sm" onclick="loadAudit()">🔍 Filter</button>
+        <div class="card-header">
+          <div><div class="card-title">API Keys</div><div class="card-subtitle">External projects that can create schedules via API</div></div>
+          <button class="btn btn-primary" onclick="openApiClientModal()">+ New API Key</button>
+        </div>
+        <div class="card" style="background:#fffbeb;border-color:#fde68a;margin-bottom:16px">
+          <b>📡 External API Usage:</b><br>
+          <code style="font-size:12px">POST /api/external/schedule</code> with header <code>X-SaviSchedular-Key: YOUR_KEY</code><br>
+          <small style="color:#92400e">Body: { "productCode": "SAVISCHOOLS", "jobTypeCode": "WHATSAPP_ABSENT", "externalId": "1093", "scheduledHour": 10, "scheduledMinute": 0, "isActive": true }</small>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th></th><th>Action</th><th>Table</th><th>Record</th><th>Changed By</th><th>Changed At</th><th>Notes</th></tr></thead>
-            <tbody id="audit-tbody"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Client Name</th><th>API Key (masked)</th><th>Allowed Products</th><th>Status</th><th>Last Used</th><th>Actions</th></tr></thead>
+            <tbody id="apiclients-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
-        <div class="pagination" id="audit-pagination"></div>
       </div>
-    </section>
+    </div>
 
-    <!-- ════ SETTINGS ════ -->
-    <section id="section-settings" class="section">
-      <div class="card" style="max-width:700px">
-        <div class="card-header"><span class="card-title">🛠️ Global Settings</span><button class="btn btn-primary btn-sm" onclick="saveAllSettings()">💾 Save All</button></div>
-        <div class="card-body">
-          <div id="settings-form"><div class="spinner" style="margin:20px auto;display:block"></div></div>
+    <!-- ══ SETTINGS ══ -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Global Settings</div><div class="card-subtitle">SMTP, notifications, system settings</div></div>
+        </div>
+        <div id="settings-body">
+          <tr class="loading-row"><td colspan="3"><div class="spinner"></div></td></tr>
         </div>
       </div>
-    </section>
+    </div>
 
   </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /layout -->
 
-<!-- ═══════════════════════ MODALS ═══════════════════════ -->
+<!-- ══ TOAST CONTAINER ══ -->
+<div class="toast-container" id="toasts"></div>
 
-<!-- ADD/EDIT SCHEDULE MODAL -->
-<div class="overlay" id="modal-schedule">
+<!-- ══ MODALS ══ -->
+
+<!-- Product Modal -->
+<div class="modal-overlay" id="modal-product">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title" id="modal-schedule-title">Add New Schedule</span>
-      <button class="modal-close" onclick="closeModal('modal-schedule')">✕</button>
+      <span class="modal-title" id="product-modal-title">Add Product</span>
+      <button class="modal-close" onclick="closeModal('modal-product')">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="p-id">
       <div class="form-row">
         <div class="form-group">
-          <label>School ID *</label>
-          <input type="number" id="f-schoolId" placeholder="e.g. 101" min="1">
+          <label>Product Code *</label>
+          <input type="text" id="p-code" placeholder="SAVISCHOOLS" style="text-transform:uppercase">
         </div>
         <div class="form-group">
-          <label>Job Type *</label>
-          <select id="f-jobType"></select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Scheduled Time *</label>
-          <input type="time" id="f-time" value="08:00">
-          <div class="form-hint">HH:MM format (24-hour)</div>
-        </div>
-        <div class="form-group">
-          <label>Timezone *</label>
-          <select id="f-timezone"></select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Misfire Threshold (minutes)</label>
-          <input type="number" id="f-misfire" value="15" min="1" max="120">
-          <div class="form-hint">Skip job if it fires more than this many minutes late</div>
-        </div>
-        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end">
-          <div class="toggle-wrap">
-            <button class="toggle" id="f-holiday-toggle" onclick="toggleBtn(this)"></button>
-            <div>
-              <span class="toggle-label">Run on Holidays</span>
-              <div class="form-hint">Enable to run job even on school holidays</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <input type="hidden" id="f-editing-key">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-schedule')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSchedule()">💾 Save Schedule</button>
-    </div>
-  </div>
-</div>
-
-<!-- API CONFIG MODAL -->
-<div class="overlay" id="modal-apiconfig">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-apiconfig-title">API Configuration</span>
-      <button class="modal-close" onclick="closeModal('modal-apiconfig')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group">
-          <label>School ID *</label>
-          <input type="number" id="ac-schoolId" placeholder="e.g. 101" min="1">
-        </div>
-        <div class="form-group">
-          <label>Job Type *</label>
-          <select id="ac-jobType"></select>
+          <label>Product Name *</label>
+          <input type="text" id="p-name" placeholder="SaviSchools">
         </div>
       </div>
       <div class="form-group">
         <label>Base URL *</label>
-        <input type="text" id="ac-baseUrl" placeholder="http://localhost:44548/">
-        <div class="form-hint">School's API base URL — overrides the global default</div>
+        <input type="text" id="p-url" placeholder="https://abc.savischools.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Token Type</label>
+          <select id="p-token-type">
+            <option value="Bearer">Bearer</option>
+            <option value="ApiKey">ApiKey</option>
+            <option value="Basic">Basic</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Token Header Name</label>
+          <input type="text" id="p-token-header" placeholder="Authorization">
+        </div>
       </div>
       <div class="form-group">
-        <label>API Path (optional)</label>
-        <input type="text" id="ac-apiPath" placeholder="/api/asapi/run-absent-whatsapp">
-        <div class="form-hint">Leave blank to use the job type's default API path</div>
+        <label>API Token / Key</label>
+        <input type="password" id="p-token" placeholder="Enter token (leave blank to keep existing)">
       </div>
-      <div id="test-result-box" class="test-result"></div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="p-desc" placeholder="Optional description">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="p-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-apiconfig')">Cancel</button>
-      <button class="btn btn-warning" onclick="testConnection()">🔍 Test Connection</button>
-      <button class="btn btn-primary" onclick="saveApiConfig()">💾 Save Config</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
     </div>
   </div>
 </div>
 
-<!-- JOB TYPE MODAL -->
-<div class="overlay" id="modal-jobtype">
+<!-- Job Type Modal -->
+<div class="modal-overlay" id="modal-jobtype">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title" id="modal-jobtype-title">Add Job Type</span>
+      <span class="modal-title" id="jobtype-modal-title">Add Job Type</span>
       <button class="modal-close" onclick="closeModal('modal-jobtype')">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="jt-id">
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="jt-product"></select>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Job Type Code *</label>
-          <input type="text" id="jt-code" placeholder="e.g. AbsentWhatsApp">
-          <div class="form-hint">Unique code, spaces nahi</div>
+          <input type="text" id="jt-code" placeholder="WHATSAPP_ABSENT" style="text-transform:uppercase">
         </div>
         <div class="form-group">
           <label>Job Type Name *</label>
-          <input type="text" id="jt-name" placeholder="e.g. Absent WhatsApp Alert">
+          <input type="text" id="jt-name" placeholder="WhatsApp Absent Alert">
         </div>
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <textarea id="jt-desc" placeholder="Yeh job kya karta hai..."></textarea>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -715,883 +559,865 @@ textarea{resize:vertical;min-height:80px}
         </div>
         <div class="form-group">
           <label>HTTP Method</label>
-          <select id="jt-method"><option>POST</option><option>GET</option></select>
+          <select id="jt-method"><option value="POST">POST</option><option value="GET">GET</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="jt-desc" placeholder="Optional">
+      </div>
+      <div class="form-group">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="jt-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
         </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-jobtype')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveJobType()">💾 Save Job Type</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-jobtype')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJobType()">Save Job Type</button>
     </div>
   </div>
 </div>
 
-<!-- CONFIRM MODAL -->
-<div class="overlay" id="modal-confirm">
-  <div class="modal" style="max-width:420px">
+<!-- Client Modal -->
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">⚠️ Confirm Action</span>
-      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+      <span class="modal-title" id="client-modal-title">Add Client</span>
+      <button class="modal-close" onclick="closeModal('modal-client')">✕</button>
     </div>
     <div class="modal-body">
-      <p id="confirm-msg" style="font-size:14px;line-height:1.6"></p>
+      <input type="hidden" id="cl-id">
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="cl-product"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client Name *</label>
+          <input type="text" id="cl-name" placeholder="School ABC">
+        </div>
+        <div class="form-group">
+          <label>External ID * (SchoolId)</label>
+          <input type="text" id="cl-extid" placeholder="1093">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Custom Base URL (override product URL)</label>
+        <input type="text" id="cl-baseurl" placeholder="Leave blank to use product URL">
+      </div>
+      <div class="form-group">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="cl-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancel</button>
-      <button class="btn btn-danger" id="confirm-ok-btn">Yes, Delete</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-client')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST CONTAINER -->
-<div class="toast-wrap" id="toast-wrap"></div>
+<!-- Schedule Modal -->
+<div class="modal-overlay" id="modal-schedule">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="schedule-modal-title">Add Schedule</span>
+      <button class="modal-close" onclick="closeModal('modal-schedule')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sc-id">
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="sc-product" onchange="loadClientsForSchedule();loadJobTypesForSchedule()"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client *</label>
+          <select id="sc-client"></select>
+        </div>
+        <div class="form-group">
+          <label>Job Type *</label>
+          <select id="sc-jobtype"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Scheduled Hour (0-23) *</label>
+          <input type="number" id="sc-hour" min="0" max="23" value="10">
+        </div>
+        <div class="form-group">
+          <label>Scheduled Minute (0-59)</label>
+          <input type="number" id="sc-minute" min="0" max="59" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Timezone</label>
+        <select id="sc-tz">
+          <option value="India Standard Time">India Standard Time (IST)</option>
+          <option value="UTC">UTC</option>
+          <option value="US Eastern Standard Time">US Eastern</option>
+          <option value="US Pacific Standard Time">US Pacific</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Payload JSON (optional extra params)</label>
+        <textarea id="sc-payload" placeholder='{"companyId":"1","customParam":"value"}'></textarea>
+        <small style="color:var(--text-muted)">Note: externalId, targetId and productCode are auto-injected.</small>
+      </div>
+      <div class="form-group">
+        <label>Custom API Path (overrides job type default)</label>
+        <input type="text" id="sc-apipath" placeholder="Leave blank to use job type default">
+      </div>
+      <div class="form-group">
+        <label>Custom API Token (overrides product token)</label>
+        <input type="password" id="sc-token" placeholder="Leave blank to use product token">
+      </div>
+      <div class="form-group">
+        <label>Misfire Threshold (minutes)</label>
+        <input type="number" id="sc-misfire" value="15" min="0">
+      </div>
+      <div style="display:flex;gap:20px;margin-top:4px">
+        <div class="form-group">
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="sc-active" checked><span class="toggle-slider"></span></label>
+            <span>Active</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="sc-holidays"><span class="toggle-slider"></span></label>
+            <span>Run on Holidays</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-schedule')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">Save Schedule</button>
+    </div>
+  </div>
+</div>
 
-<!-- ═══════════════════════ JAVASCRIPT ═══════════════════════ -->
+<!-- API Client Modal -->
+<div class="modal-overlay" id="modal-apiclient">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="apiclient-modal-title">New API Client</span>
+      <button class="modal-close" onclick="closeModal('modal-apiclient')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ac-id">
+      <div class="form-group">
+        <label>Client Name *</label>
+        <input type="text" id="ac-name" placeholder="SaviSchools Project">
+      </div>
+      <div class="form-group">
+        <label>Allowed Product IDs (comma-separated, blank = all)</label>
+        <input type="text" id="ac-products" placeholder="1,2,3">
+      </div>
+      <div class="form-group">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="ac-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
+      <div id="new-key-display" style="display:none">
+        <div style="background:#d1fae5;border:1px solid #a7f3d0;border-radius:8px;padding:12px;margin-top:12px">
+          <b style="color:#065f46">✅ API Key Generated — Copy it now, it won't be shown again:</b>
+          <div class="api-key-box" id="new-key-value"></div>
+          <button class="btn btn-success btn-sm" onclick="copyKey()">📋 Copy Key</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-apiclient')">Close</button>
+      <button class="btn btn-primary" id="ac-save-btn" onclick="saveApiClient()">Generate API Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Detail Modal -->
+<div class="modal-overlay" id="modal-log">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title">Log Detail</span>
+      <button class="modal-close" onclick="closeModal('modal-log')">✕</button>
+    </div>
+    <div class="modal-body" id="log-detail-body"></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-log')">Close</button></div>
+  </div>
+</div>
+
 <script>
-'use strict';
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let products = [];
+let currentPage = 'dashboard';
+let dashPage = 1, logsPage = 1;
 
-// ──────────────────────────────────────────────────────────
-// CONFIG
-// ──────────────────────────────────────────────────────────
-const API = {
-  dashboard:    '/api/scheduler/dashboard',
-  schedules:    '/api/scheduler/list',
-  saveSch:      '/api/scheduler/save',
-  deleteSch:    '/api/scheduler/delete',
-  toggleSch:    '/api/scheduler/toggle',
-  triggerJob:   '/api/scheduler/trigger',
-  jobTypes:     '/api/jobtypes/list',
-  saveJT:       '/api/jobtypes/save',
-  toggleJT:     '/api/jobtypes/toggle',
-  apiConfigs:   '/api/apiconfig/list',
-  saveAC:       '/api/apiconfig/save',
-  deleteAC:     '/api/apiconfig/delete',
-  testAC:       '/api/apiconfig/test',
-  globalConfig: '/api/globalconfig/list',
-  updateConfig: '/api/globalconfig/update-bulk',
-  logs:         '/api/logs/execution',
-  audit:        '/api/logs/audit',
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadProducts().then(() => {
+    loadDashboard(1);
+    populateProductDropdowns();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const pageTitles = {
+  dashboard: ['Dashboard', 'Overview of all scheduled jobs and activity'],
+  products:  ['Products', 'Manage product registrations'],
+  jobtypes:  ['Job Types', 'Define job types per product'],
+  clients:   ['Clients', 'Schools / clients registered under products'],
+  schedules: ['Schedules', 'Job schedule instances per client'],
+  logs:      ['Execution Logs', 'Full history of all job runs'],
+  apiclients:['API Keys', 'External project API key management'],
+  settings:  ['Global Settings', 'SMTP, notifications and system settings'],
 };
 
-const TIMEZONES = [
-  'India Standard Time','UTC','Greenwich Standard Time',
-  'Eastern Standard Time','Central Standard Time','Mountain Standard Time','Pacific Standard Time',
-  'GMT Standard Time','W. Europe Standard Time','Central European Standard Time',
-  'Singapore Standard Time','China Standard Time','Japan Standard Time',
-  'Arabian Standard Time','Arab Standard Time','Pakistan Standard Time',
-  'Bangladesh Standard Time','Nepal Standard Time','Sri Lanka Standard Time',
-  'W. Australia Standard Time','AUS Eastern Standard Time','New Zealand Standard Time',
-  'South Africa Standard Time','E. Africa Standard Time','SE Asia Standard Time',
-  'Russia Time Zone 11','Ekaterinburg Standard Time','Myanmar Standard Time',
-];
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`)?.classList.add('active');
+  document.getElementById(`nav-${name}`)?.classList.add('active');
+  const [title, sub] = pageTitles[name] || [name, ''];
+  document.getElementById('page-title').textContent  = title;
+  document.getElementById('page-subtitle').textContent = sub;
+  currentPage = name;
+  if (name === 'dashboard')  loadDashboard(1);
+  if (name === 'products')   loadProductsTable();
+  if (name === 'jobtypes')   loadJobTypes();
+  if (name === 'clients')    loadClients();
+  if (name === 'schedules')  loadSchedules();
+  if (name === 'logs')       loadLogs(1);
+  if (name === 'apiclients') loadApiClients();
+  if (name === 'settings')   loadSettings();
+}
 
-// ──────────────────────────────────────────────────────────
-// STATE
-// ──────────────────────────────────────────────────────────
-let currentSection = 'dashboard';
-let jobTypesCache  = [];
-let schedulesCache = [];
-let logsPage  = 1;
-let auditPage = 1;
+function refreshCurrentPage() { showPage(currentPage); }
 
-// ──────────────────────────────────────────────────────────
-// INIT
-// ──────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  populateTimezones();
-  loadJobTypesCache().then(() => {
-    loadDashboard();
-    populateJobTypeDropdowns();
-  });
-  // Auto-refresh dashboard every 60s
-  setInterval(() => { if (currentSection === 'dashboard') loadDashboard(); }, 60000);
+// ═══════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════
+async function api(method, url, body) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || data.message || `HTTP ${r.status}`);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'⚠️'}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => { el.style.animation='slideOut 0.3s ease forwards'; setTimeout(()=>el.remove(),300); }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
 });
 
-// ──────────────────────────────────────────────────────────
-// NAVIGATION
-// ──────────────────────────────────────────────────────────
-function showSection(name) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('section-' + name)?.classList.add('active');
-  document.getElementById('nav-' + name)?.classList.add('active');
-  currentSection = name;
-
-  const titles = {
-    dashboard: ['Dashboard', 'Universal Scheduler Overview'],
-    schedules: ['Schedules', 'Manage school job schedules'],
-    apiconfig: ['API Configuration', 'Configure per-school API Base URL and endpoints'],
-    jobtypes:  ['Job Types', 'Manage available job types'],
-    logs:      ['Execution Logs', 'Complete log of every job execution'],
-    audit:     ['Audit Trail', 'History of configuration changes'],
-    settings:  ['Global Settings', 'Default Base URL, SMTP, and global system settings'],
-  };
-  const [t, s] = titles[name] || ['Dashboard', ''];
-  document.getElementById('page-title').textContent = t;
-  document.getElementById('page-sub').textContent   = s;
-
-  const loaders = {
-    dashboard: loadDashboard,
-    schedules: loadSchedules,
-    apiconfig: loadApiConfigs,
-    jobtypes:  loadJobTypes,
-    logs:      loadLogs,
-    audit:     loadAudit,
-    settings:  loadSettings,
-  };
-  loaders[name]?.();
+// ═══════════════════════════════════════════════════════════════
+// PRODUCTS
+// ═══════════════════════════════════════════════════════════════
+async function loadProducts() {
+  products = await api('GET', '/api/products');
+  return products;
 }
 
-function refreshCurrentSection() { showSection(currentSection); }
-
-// ──────────────────────────────────────────────────────────
-// API HELPERS
-// ──────────────────────────────────────────────────────────
-function setLoading(show) {
-  const el = document.getElementById('refresh-indicator');
-  el.innerHTML = show
-    ? '<span class="spinner spinner-sm"></span> Loading...'
-    : '✓ Updated ' + new Date().toLocaleTimeString();
-}
-
-async function apiFetch(url, opts = {}) {
-  setLoading(true);
+async function loadProductsTable() {
   try {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...opts.headers },
-      ...opts,
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
-    return data;
-  } finally {
-    setLoading(false);
-  }
+    await loadProducts();
+    const rows = products.map((p,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><b>${p.productCode}</b></td>
+        <td>${p.productName}</td>
+        <td><a href="${p.baseUrl}" target="_blank" style="color:var(--accent)">${p.baseUrl}</a></td>
+        <td><span class="badge badge-skipped">${p.tokenType||'Bearer'}</span></td>
+        <td>${p.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.productId})">✏ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.productId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('products-body').innerHTML = rows || emptyRow(7, 'No products yet');
+    populateProductDropdowns();
+  } catch(e) { document.getElementById('products-body').innerHTML = emptyRow(7, e.message, true); }
 }
 
-// ──────────────────────────────────────────────────────────
-// JOB TYPES CACHE
-// ──────────────────────────────────────────────────────────
-async function loadJobTypesCache() {
+function openProductModal(p) {
+  document.getElementById('p-id').value    = p?.productId||0;
+  document.getElementById('p-code').value  = p?.productCode||'';
+  document.getElementById('p-name').value  = p?.productName||'';
+  document.getElementById('p-url').value   = p?.baseUrl||'';
+  document.getElementById('p-token-type').value = p?.tokenType||'Bearer';
+  document.getElementById('p-token-header').value = p?.tokenHeaderName||'Authorization';
+  document.getElementById('p-token').value = '';
+  document.getElementById('p-desc').value  = p?.description||'';
+  document.getElementById('p-active').checked = p ? p.isActive : true;
+  document.getElementById('product-modal-title').textContent = p ? 'Edit Product' : 'Add Product';
+  openModal('modal-product');
+}
+
+async function editProduct(id) {
+  try { const p = await api('GET', `/api/products/${id}`); openProductModal(p); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+async function saveProduct() {
+  const body = {
+    productId: +document.getElementById('p-id').value,
+    productCode: document.getElementById('p-code').value.trim().toUpperCase(),
+    productName: document.getElementById('p-name').value.trim(),
+    baseUrl: document.getElementById('p-url').value.trim(),
+    apiToken: document.getElementById('p-token').value.trim()||'••••••••',
+    tokenType: document.getElementById('p-token-type').value,
+    tokenHeaderName: document.getElementById('p-token-header').value||'Authorization',
+    description: document.getElementById('p-desc').value.trim(),
+    isActive: document.getElementById('p-active').checked,
+  };
+  if (!body.productCode || !body.baseUrl) return toast('ProductCode and BaseUrl are required','error');
   try {
-    jobTypesCache = await apiFetch(API.jobTypes);
-    populateJobTypeDropdowns();
-    // Also populate log filter
-    const sel = document.getElementById('log-jobType');
-    sel.innerHTML = '<option value="">All Job Types</option>';
-    const types = (jobTypesCache && jobTypesCache.length > 0) ? jobTypesCache : DEFAULT_JOB_TYPES;
-    types.forEach(j => {
-      const code = j.jobTypeCode || j.JobTypeCode;
-      const name = j.jobTypeName || j.JobTypeName;
-      sel.innerHTML += `<option value="${code}">${name}</option>`;
-    });
-  } catch(e) { jobTypesCache = []; populateJobTypeDropdowns(); }
+    await api('POST', '/api/products/save', body);
+    toast('Product saved!');
+    closeModal('modal-product');
+    loadProductsTable();
+  } catch(e) { toast(e.message,'error'); }
 }
 
-const DEFAULT_JOB_TYPES = [
-  { jobTypeCode: 'AbsentWhatsApp', jobTypeName: 'Absent WhatsApp Alert', isActive: true },
-  { jobTypeCode: 'FeeReminder', jobTypeName: 'Fee Reminder', isActive: true },
-  { jobTypeCode: 'AttendanceReport', jobTypeName: 'Attendance Report Email', isActive: true },
-  { jobTypeCode: 'ResultNotification', jobTypeName: 'Result Notification', isActive: true },
-  { jobTypeCode: 'CustomApiCall', jobTypeName: 'Custom API Call', isActive: true }
-];
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  try { await api('DELETE', `/api/products/${id}`); toast('Deleted!'); loadProductsTable(); }
+  catch(e) { toast(e.message,'error'); }
+}
 
-function populateJobTypeDropdowns() {
-  const types = (jobTypesCache && jobTypesCache.length > 0)
-    ? jobTypesCache.filter(j => (j.isActive ?? j.IsActive ?? true))
-    : DEFAULT_JOB_TYPES;
-
-  ['f-jobType','ac-jobType'].forEach(id => {
+// ═══════════════════════════════════════════════════════════════
+// PRODUCT DROPDOWNS (shared across pages)
+// ═══════════════════════════════════════════════════════════════
+function populateProductDropdowns() {
+  const ids = ['jt-product-filter','cl-product-filter','sc-product-filter','log-product','dash-product',
+               'jt-product','cl-product','sc-product'];
+  ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.innerHTML = '';
-    types.forEach(j => {
-      const code = j.jobTypeCode || j.JobTypeCode;
-      const name = j.jobTypeName || j.JobTypeName;
-      el.innerHTML += `<option value="${code}">${name}</option>`;
-    });
+    const isFilter = id.includes('filter') || id==='log-product' || id==='dash-product';
+    const opt0 = isFilter ? '<option value="">All Products</option>' : '<option value="">Select Product</option>';
+    el.innerHTML = opt0 + products.map(p => `<option value="${p.productId}">${p.productName}</option>`).join('');
   });
 }
 
-function populateTimezones() {
-  const el = document.getElementById('f-timezone');
-  TIMEZONES.forEach(tz => {
-    const opt = document.createElement('option');
-    opt.value = tz; opt.textContent = tz;
-    if (tz === 'India Standard Time') opt.selected = true;
-    el.appendChild(opt);
-  });
-}
-
-// ──────────────────────────────────────────────────────────
-// DASHBOARD
-// ──────────────────────────────────────────────────────────
-let dashPage = 1;
-
-async function loadDashboard(page = 1) {
-  dashPage = page || 1;
-  const q = document.getElementById('dash-search')?.value || '';
-  const stFilter = document.getElementById('dash-status')?.value || '';
-  let url = `${API.dashboard}?page=${dashPage}&pageSize=10`;
-  if (q) url += `&q=${encodeURIComponent(q)}`;
-  if (stFilter) url += `&status=${encodeURIComponent(stFilter)}`;
-
-  try {
-    const d = await apiFetch(url);
-    const s = d.stats || d.Stats || {};
-    document.getElementById('stat-schools').textContent  = s.activeSchools ?? s.ActiveSchools ?? 0;
-    document.getElementById('stat-jobs').textContent     = s.activeJobs ?? s.ActiveJobs ?? 0;
-    document.getElementById('stat-success').textContent  = s.successToday ?? s.SuccessToday ?? 0;
-    document.getElementById('stat-failed').textContent   = s.failedToday ?? s.FailedToday ?? 0;
-    document.getElementById('stat-skipped').textContent  = s.skippedToday ?? s.SkippedToday ?? 0;
-    document.getElementById('stat-running').textContent  = s.runningNow ?? s.RunningNow ?? 0;
-
-    // Update failed badge
-    const failedCount = s.failedToday ?? s.FailedToday ?? 0;
-    const badge = document.getElementById('failed-badge');
-    if (failedCount > 0) { badge.textContent = failedCount; badge.style.display = 'inline'; }
-    else badge.style.display = 'none';
-
-    // Recent logs
-    const logs = d.recentLogs || d.RecentLogs;
-    const tbody = document.getElementById('recent-logs');
-    if (!logs?.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="loading-row"><div class="empty-icon">📭</div><div>No recent activity found</div></td></tr>`;
-      renderPagination('dash-pagination', 0, 1, 1);
-      return;
-    }
-    tbody.innerHTML = logs.map(l => {
-      const schId = l.schoolId ?? l.SchoolId ?? '—';
-      const code = l.jobTypeCode || l.JobTypeCode || '';
-      const trigger = l.triggerType || l.TriggerType || '';
-      const started = l.startedAt || l.StartedAt;
-      const dur = l.durationSeconds ?? l.DurationSeconds;
-      const st = l.status || l.Status;
-
-      return `
-      <tr>
-        <td><strong>School ID: ${schId}</strong></td>
-        <td>${jobTypeBadge(code)}</td>
-        <td>${triggerBadge(trigger)}</td>
-        <td>${fmtTime(started)}</td>
-        <td>${dur!=null ? Number(dur).toFixed(1)+'s' : '—'}</td>
-        <td>${statusBadge(st)}</td>
-      </tr>`;
-    }).join('');
-
-    renderPagination('dash-pagination', d.total || d.Total || logs.length, d.page || d.Page || dashPage, d.totalPages || d.TotalPages || 1);
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-function clearDashFilter() {
-  if (document.getElementById('dash-search')) document.getElementById('dash-search').value = '';
-  if (document.getElementById('dash-status')) document.getElementById('dash-status').value = '';
-  loadDashboard(1);
-}
-
-// ──────────────────────────────────────────────────────────
-// SCHEDULES
-// ──────────────────────────────────────────────────────────
-async function loadSchedules() {
-  const tbody = document.getElementById('schedules-tbody');
-  tbody.innerHTML = loadingRow(7);
-  try {
-    schedulesCache = await apiFetch(API.schedules);
-    renderSchedules(schedulesCache);
-  } catch(e) { tbody.innerHTML = errorRow(7, e.message); }
-}
-
-function renderSchedules(data) {
-  const tbody = document.getElementById('schedules-tbody');
-  if (!data || !data.length) { tbody.innerHTML = emptyRow(7, 'No schedules found', 'Click Add Schedule button to create one'); return; }
-  tbody.innerHTML = data.map(s => {
-    const schoolId = s.schoolId ?? s.SchoolId;
-    const jobTypeCode = s.jobTypeCode || s.JobTypeCode || '';
-    const jobTypeName = s.jobTypeName || s.JobTypeName || '';
-    const hour = s.scheduledHour ?? s.ScheduledHour ?? 0;
-    const minute = s.scheduledMinute ?? s.ScheduledMinute ?? 0;
-    const tz = s.timeZone || s.TimeZone || 'IST';
-    const runOnHolidays = s.runOnHolidays ?? s.RunOnHolidays ?? false;
-    const isActive = s.isActive ?? s.IsActive ?? false;
-
-    return `
-    <tr id="row-${schoolId}-${jobTypeCode}">
-      <td><strong>School ID: ${schoolId}</strong></td>
-      <td>${jobTypeBadge(jobTypeCode)}<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(jobTypeName)}</div></td>
-      <td><span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums">${pad(hour)}:${pad(minute)}</span></td>
-      <td style="font-size:11px;max-width:150px;word-break:break-word">${esc(tz)}</td>
-      <td><span class="badge ${runOnHolidays?'badge-warning':'badge-muted'}">${runOnHolidays?'✓ Yes':'✗ No'}</span></td>
-      <td>${isActive
-        ? '<span class="badge badge-success"><span class="dot dot-green"></span>Active</span>'
-        : '<span class="badge badge-error"><span class="dot dot-red"></span>Inactive</span>'}
-      </td>
-      <td class="td-actions">
-        <button class="btn btn-ghost btn-sm" onclick='editSchedule(${JSON.stringify(s)})' title="Edit">✏️</button>
-        <button class="btn btn-sm ${isActive?'btn-warning':'btn-success'}"
-          onclick="toggleSchedule(${schoolId},'${jobTypeCode}',this)" title="${isActive?'Disable':'Enable'}">
-          ${isActive?'⏸ Disable':'▶ Enable'}
-        </button>
-        <button class="btn btn-success btn-sm" onclick="triggerJob(${schoolId},'${jobTypeCode}')" title="Run Now">⚡ Run</button>
-        <button class="btn btn-danger btn-sm" onclick="confirmDeleteSchedule(${schoolId},'${jobTypeCode}')" title="Delete">🗑</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function filterSchedules() {
-  const q = document.getElementById('sch-search').value.toLowerCase();
-  const filtered = schedulesCache.filter(s => {
-    const schId = (s.schoolId ?? s.SchoolId ?? '').toString();
-    const code = (s.jobTypeCode || s.JobTypeCode || '').toLowerCase();
-    return schId.includes(q) || code.includes(q);
-  });
-  renderSchedules(filtered);
-}
-
-function openAddScheduleModal() {
-  document.getElementById('modal-schedule-title').textContent = 'Add New Schedule';
-  document.getElementById('f-schoolId').value = '';
-  document.getElementById('f-time').value = '08:00';
-  document.getElementById('f-misfire').value = 15;
-  document.getElementById('f-holiday-toggle').classList.remove('on');
-  document.getElementById('f-editing-key').value = '';
-  populateJobTypeDropdowns();
-  document.getElementById('f-timezone').value = 'India Standard Time';
-  openModal('modal-schedule');
-}
-
-function editSchedule(s) {
-  const schoolId = s.schoolId ?? s.SchoolId;
-  const jobTypeCode = s.jobTypeCode || s.JobTypeCode;
-  const hour = s.scheduledHour ?? s.ScheduledHour ?? 8;
-  const minute = s.scheduledMinute ?? s.ScheduledMinute ?? 0;
-  const tz = s.timeZone || s.TimeZone || 'India Standard Time';
-  const misfire = s.misfireThresholdMinutes ?? s.MisfireThresholdMinutes ?? 15;
-  const runOnHolidays = s.runOnHolidays ?? s.RunOnHolidays ?? false;
-
-  populateJobTypeDropdowns();
-  document.getElementById('modal-schedule-title').textContent = `Edit: School ${schoolId} | ${jobTypeCode}`;
-  document.getElementById('f-schoolId').value   = schoolId;
-  document.getElementById('f-jobType').value     = jobTypeCode;
-  document.getElementById('f-time').value        = `${pad(hour)}:${pad(minute)}`;
-  document.getElementById('f-timezone').value    = tz;
-  document.getElementById('f-misfire').value     = misfire;
-  const hol = document.getElementById('f-holiday-toggle');
-  runOnHolidays ? hol.classList.add('on') : hol.classList.remove('on');
-  document.getElementById('f-editing-key').value = `${schoolId}_${jobTypeCode}`;
-  openModal('modal-schedule');
-}
-
-async function saveSchedule() {
-  const schoolId = +document.getElementById('f-schoolId').value;
-  const jobTypeCode = document.getElementById('f-jobType').value;
-  const timeVal = document.getElementById('f-time').value;
-  const [hour, minute] = timeVal.split(':').map(Number);
-  const tz = document.getElementById('f-timezone').value;
-  const misfire = +document.getElementById('f-misfire').value;
-  const runOnHolidays = document.getElementById('f-holiday-toggle').classList.contains('on');
-
-  if (!schoolId || !jobTypeCode || isNaN(hour) || isNaN(minute)) {
-    toast('Please fill in all required fields.', 'error'); return;
-  }
-  try {
-    const res = await apiFetch(API.saveSch, {
-      method: 'POST',
-      body: JSON.stringify({ schoolId, jobTypeCode, hour, minute, timeZone: tz, runOnHolidays, misfireThresholdMinutes: misfire })
-    });
-    toast(res.message, 'success');
-    closeModal('modal-schedule');
-    loadSchedules();
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-function confirmDeleteSchedule(schoolId, jobType) {
-  showConfirm(
-    `"${jobType}" schedule School ID ${schoolId} se delete karna chahte hain?`,
-    async () => {
-      try {
-        const r = await apiFetch(`${API.deleteSch}?schoolId=${schoolId}&jobType=${jobType}`, { method: 'DELETE' });
-        toast(r.message, 'success'); loadSchedules();
-      } catch(e) { toast(e.message, 'error'); }
-    }, 'Yes, Delete'
-  );
-}
-
-async function toggleSchedule(schoolId, jobType, btn) {
-  try {
-    const r = await apiFetch(`${API.toggleSch}?schoolId=${schoolId}&jobType=${jobType}`, { method: 'POST' });
-    toast(r.message, 'success'); loadSchedules();
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-async function triggerJob(schoolId, jobType) {
-  try {
-    const r = await apiFetch(`${API.triggerJob}?schoolId=${schoolId}&jobType=${jobType}`, { method: 'POST' });
-    toast('⚡ ' + r.message, 'success');
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-// ──────────────────────────────────────────────────────────
-// API CONFIG
-// ──────────────────────────────────────────────────────────
-async function loadApiConfigs() {
-  const tbody = document.getElementById('apiconfig-tbody');
-  tbody.innerHTML = loadingRow(6);
-  try {
-    const data = await apiFetch(API.apiConfigs);
-    if (!data || !data.length) { tbody.innerHTML = emptyRow(6, 'No API configs found', 'Click Add Config to configure API details'); return; }
-    tbody.innerHTML = data.map(c => {
-      const schId = c.schoolId ?? c.SchoolId;
-      const code = c.jobTypeCode || c.JobTypeCode;
-      const url = c.baseUrl || c.BaseUrl;
-      const path = c.apiPath || c.ApiPath || '—';
-      const active = c.isActive ?? c.IsActive ?? true;
-      const cfgId = c.configId ?? c.ConfigId;
-
-      return `
-      <tr>
-        <td><strong>${schId}</strong></td>
-        <td>${jobTypeBadge(code)}</td>
-        <td style="max-width:200px;word-break:break-all;font-size:12px"><a href="${esc(url)}" target="_blank" style="color:var(--accent)">${esc(url)}</a></td>
-        <td style="font-size:12px;color:var(--text-muted)">${esc(path)}</td>
-        <td>${active?'<span class="badge badge-success">Active</span>':'<span class="badge badge-muted">Inactive</span>'}</td>
-        <td class="td-actions">
-          <button class="btn btn-ghost btn-sm" onclick='editApiConfig(${JSON.stringify(c)})'>✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="confirmDeleteApiConfig(${cfgId})">🗑</button>
-        </td>
-      </tr>`;
-    }).join('');
-  } catch(e) { tbody.innerHTML = errorRow(6, e.message); }
-}
-
-function openApiConfigModal() {
-  document.getElementById('modal-apiconfig-title').textContent = 'Add API Config';
-  document.getElementById('ac-schoolId').value = '';
-  document.getElementById('ac-baseUrl').value  = '';
-  document.getElementById('ac-apiPath').value  = '';
-  document.getElementById('test-result-box').classList.remove('show','test-ok','test-fail');
-  populateJobTypeDropdowns();
-  openModal('modal-apiconfig');
-}
-
-function editApiConfig(c) {
-  const schId = c.schoolId ?? c.SchoolId;
-  const code = c.jobTypeCode || c.JobTypeCode;
-  const url = c.baseUrl || c.BaseUrl;
-  const path = c.apiPath || c.ApiPath || '';
-
-  populateJobTypeDropdowns();
-  document.getElementById('modal-apiconfig-title').textContent = `Edit Config: School ${schId} | ${code}`;
-  document.getElementById('ac-schoolId').value  = schId;
-  document.getElementById('ac-jobType').value   = code;
-  document.getElementById('ac-baseUrl').value   = url;
-  document.getElementById('ac-apiPath').value   = path;
-  document.getElementById('test-result-box').classList.remove('show','test-ok','test-fail');
-  openModal('modal-apiconfig');
-}
-
-async function saveApiConfig() {
-  const schoolId   = +document.getElementById('ac-schoolId').value;
-  const jobTypeCode= document.getElementById('ac-jobType').value;
-  const baseUrl    = document.getElementById('ac-baseUrl').value.trim();
-  const apiPath    = document.getElementById('ac-apiPath').value.trim();
-
-  if (!schoolId || !jobTypeCode || !baseUrl) { toast('Please fill in School ID, Job Type, and Base URL.','error'); return; }
-  try {
-    const r = await apiFetch(API.saveAC, {
-      method:'POST', body: JSON.stringify({
-        schoolId, jobTypeCode, baseUrl, apiPath,
-        httpMethod: 'POST', timeoutMinutes: 15, customHeaders: ''
-      })
-    });
-    toast(r.message,'success'); closeModal('modal-apiconfig'); loadApiConfigs();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-function confirmDeleteApiConfig(configId) {
-  showConfirm('Yeh API config delete karna chahte hain?', async () => {
-    try {
-      const r = await apiFetch(`${API.deleteAC}?configId=${configId}`, { method:'DELETE' });
-      toast(r.message,'success'); loadApiConfigs();
-    } catch(e) { toast(e.message,'error'); }
-  });
-}
-
-async function testConnection() {
-  const schoolId  = +document.getElementById('ac-schoolId').value || 0;
-  const baseUrl   = document.getElementById('ac-baseUrl').value.trim();
-  const apiPath   = document.getElementById('ac-apiPath').value.trim();
-  const box = document.getElementById('test-result-box');
-  box.innerHTML = '<span class="spinner spinner-sm"></span> Testing connection...';
-  box.className = 'test-result show';
-  try {
-    const r = await apiFetch(API.testAC, {
-      method:'POST', body: JSON.stringify({ schoolId, baseUrl, apiPath, httpMethod: 'POST' })
-    });
-    if (r.success) {
-      box.className = 'test-result show test-ok';
-      box.innerHTML = `✅ <strong>Connection Successful!</strong><br>
-        URL: ${esc(r.testedUrl)}<br>
-        HTTP Status: ${r.statusCode} ${esc(r.statusText)}<br>
-        Response: <pre>${esc(r.responseBody||'(empty)')}</pre>`;
-    } else {
-      box.className = 'test-result show test-fail';
-      box.innerHTML = `❌ <strong>Connection Failed</strong><br>
-        URL: ${esc(r.testedUrl)}<br>
-        ${r.error ? 'Error: '+esc(r.error) : 'HTTP: '+r.statusCode+' '+esc(r.statusText)}<br>
-        ${r.responseBody ? '<pre>'+esc(r.responseBody)+'</pre>' : ''}`;
-    }
-  } catch(e) {
-    box.className = 'test-result show test-fail';
-    box.innerHTML = `❌ Error: ${esc(e.message)}`;
-  }
-}
-
-// ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
 // JOB TYPES
-// ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
 async function loadJobTypes() {
-  const tbody = document.getElementById('jobtypes-tbody');
-  tbody.innerHTML = loadingRow(7);
+  const pid = document.getElementById('jt-product-filter')?.value;
   try {
-    const data = await apiFetch(API.jobTypes);
-    jobTypesCache = data;
-    if (!data.length) { tbody.innerHTML = emptyRow(7,'Koi job type nahi','Add Job Type se banayein'); return; }
-    tbody.innerHTML = data.map(j => `
+    const data = await api('GET', `/api/jobtypes${pid?`?productId=${pid}`:''}`);
+    const rows = data.map((jt,i) => `
       <tr>
-        <td><code style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;font-size:12px">${esc(j.jobTypeCode)}</code></td>
-        <td><strong>${esc(j.jobTypeName)}</strong></td>
-        <td style="font-size:12px;color:var(--text-muted);max-width:200px">${esc(j.description||'—')}</td>
-        <td style="font-size:12px;color:var(--text-dim)">${esc(j.defaultApiPath||'—')}</td>
-        <td><span class="badge badge-info">${j.httpMethod||'POST'}</span></td>
-        <td>${j.isActive?'<span class="badge badge-success">Active</span>':'<span class="badge badge-muted">Inactive</span>'}</td>
-        <td class="td-actions">
-          <button class="btn btn-ghost btn-sm" onclick='editJobType(${JSON.stringify(j)})'>✏️</button>
-          <button class="btn btn-sm ${j.isActive?'btn-warning':'btn-success'}" onclick="toggleJobType('${j.jobTypeCode}',this)">
-            ${j.isActive?'⏸':'▶'}
-          </button>
+        <td>${i+1}</td>
+        <td><span class="badge badge-running">${jt.productName}</span></td>
+        <td><b>${jt.jobTypeCode}</b></td>
+        <td>${jt.jobTypeName}</td>
+        <td><code style="font-size:11px">${jt.defaultApiPath||'—'}</code></td>
+        <td><span class="badge badge-skipped">${jt.httpMethod||'POST'}</span></td>
+        <td>${jt.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editJobType(${jt.jobTypeId},${JSON.stringify(jt).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteJobType(${jt.jobTypeId})">🗑</button>
         </td>
       </tr>`).join('');
-  } catch(e) { tbody.innerHTML = errorRow(7, e.message); }
+    document.getElementById('jobtypes-body').innerHTML = rows || emptyRow(8,'No job types');
+  } catch(e) { document.getElementById('jobtypes-body').innerHTML = emptyRow(8,e.message,true); }
 }
 
-function openJobTypeModal() {
-  document.getElementById('modal-jobtype-title').textContent = 'Add Job Type';
-  document.getElementById('jt-code').value = '';
-  document.getElementById('jt-name').value = '';
-  document.getElementById('jt-desc').value = '';
-  document.getElementById('jt-path').value = '';
-  document.getElementById('jt-method').value = 'POST';
-  document.getElementById('jt-code').disabled = false;
+function openJobTypeModal(jt) {
+  populateProductDropdowns();
+  document.getElementById('jt-id').value = jt?.jobTypeId||0;
+  document.getElementById('jt-product').value = jt?.productId||'';
+  document.getElementById('jt-code').value = jt?.jobTypeCode||'';
+  document.getElementById('jt-name').value = jt?.jobTypeName||'';
+  document.getElementById('jt-path').value = jt?.defaultApiPath||'';
+  document.getElementById('jt-method').value = jt?.httpMethod||'POST';
+  document.getElementById('jt-desc').value = jt?.description||'';
+  document.getElementById('jt-active').checked = jt ? jt.isActive : true;
+  document.getElementById('jobtype-modal-title').textContent = jt ? 'Edit Job Type' : 'Add Job Type';
   openModal('modal-jobtype');
 }
-
-function editJobType(j) {
-  document.getElementById('modal-jobtype-title').textContent = `Edit: ${j.jobTypeName}`;
-  document.getElementById('jt-code').value   = j.jobTypeCode;
-  document.getElementById('jt-name').value   = j.jobTypeName;
-  document.getElementById('jt-desc').value   = j.description||'';
-  document.getElementById('jt-path').value   = j.defaultApiPath||'';
-  document.getElementById('jt-method').value = j.httpMethod||'POST';
-  document.getElementById('jt-code').disabled = true; // Code change nahi hota
-  openModal('modal-jobtype');
-}
+function editJobType(id, jt) { openJobTypeModal(jt); }
 
 async function saveJobType() {
-  const code = document.getElementById('jt-code').value.trim();
-  const name = document.getElementById('jt-name').value.trim();
-  if (!code || !name) { toast('Code aur Name required hain.','error'); return; }
-  try {
-    const r = await apiFetch(API.saveJT, {
-      method:'POST', body: JSON.stringify({
-        jobTypeCode:  code,
-        jobTypeName:  name,
-        description:  document.getElementById('jt-desc').value.trim(),
-        defaultApiPath: document.getElementById('jt-path').value.trim(),
-        httpMethod:   document.getElementById('jt-method').value,
-      })
-    });
-    toast(r.message,'success'); closeModal('modal-jobtype'); loadJobTypes(); loadJobTypesCache();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-async function toggleJobType(code, btn) {
-  try {
-    const r = await apiFetch(`${API.toggleJT}?code=${encodeURIComponent(code)}`, { method:'POST' });
-    toast(r.message,'success'); loadJobTypes();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-// ──────────────────────────────────────────────────────────
-// LOGS
-// ──────────────────────────────────────────────────────────
-async function loadLogs() {
-  const tbody = document.getElementById('logs-tbody');
-  tbody.innerHTML = loadingRow(8);
-  const schoolId  = document.getElementById('log-schoolId').value || '';
-  const jobType   = document.getElementById('log-jobType').value;
-  const status    = document.getElementById('log-status').value;
-  const days      = document.getElementById('log-days').value;
-  let url = `${API.logs}?days=${days}&page=${logsPage}&pageSize=30`;
-  if (schoolId) url += `&schoolId=${schoolId}`;
-  if (jobType)  url += `&jobType=${encodeURIComponent(jobType)}`;
-  if (status)   url += `&status=${status}`;
-  try {
-    const d = await apiFetch(url);
-    if (!d.data?.length) { tbody.innerHTML = emptyRow(8,'Koi log nahi mila','Filter change karein'); renderPagination('logs-pagination',0,1,1); return; }
-    tbody.innerHTML = d.data.map(l => `
-      <tr style="cursor:pointer" onclick="toggleLogDetail(this, ${l.logId})">
-        <td style="color:var(--text-muted);font-size:16px">▶</td>
-        <td><strong>School ID: ${l.schoolId ?? l.SchoolId ?? '—'}</strong></td>
-        <td>${jobTypeBadge(l.jobTypeCode || l.JobTypeCode)}</td>
-        <td>${triggerBadge(l.triggerType || l.TriggerType)}</td>
-        <td style="white-space:nowrap">${fmtTime(l.startedAt || l.StartedAt)}</td>
-        <td>${(l.durationSeconds ?? l.DurationSeconds)!=null?(l.durationSeconds ?? l.DurationSeconds).toFixed(2)+'s':'—'}</td>
-        <td>${statusBadge(l.status || l.Status, l.skipReason || l.SkipReason)}</td>
-        <td>${(l.httpStatusCode || l.HttpStatusCode) ? httpBadge(l.httpStatusCode || l.HttpStatusCode) : '—'}</td>
-      </tr>
-      <tr id="detail-${l.logId || l.LogId}" style="display:none" class="detail-row">
-        <td colspan="8">
-          <div class="detail-box">
-            ${(l.apiUrl || l.ApiUrl) ? '<strong>API URL:</strong> '+esc(l.apiUrl || l.ApiUrl)+'<br>' : ''}
-            ${(l.errorMessage || l.ErrorMessage) ? '<strong style="color:var(--error)">Error:</strong> '+esc(l.errorMessage || l.ErrorMessage)+'<br>' : ''}
-            ${(l.responseBody || l.ResponseBody) ? '<strong>Response:</strong><pre>'+esc(l.responseBody || l.ResponseBody)+'</pre>' : ''}
-            ${!l.apiUrl && !l.ApiUrl && !l.errorMessage && !l.ErrorMessage && !l.responseBody && !l.ResponseBody ? '<em>No additional details</em>' : ''}
-          </div>
-        </td>
-      </tr>`).join('');
-    renderPagination('logs-pagination', d.total || d.Total, d.page || d.Page, d.totalPages || d.TotalPages);
-  } catch(e) { tbody.innerHTML = errorRow(8, e.message); }
-}
-
-function toggleLogDetail(row, logId) {
-  const detail = document.getElementById('detail-'+logId);
-  if (!detail) return;
-  const isOpen = detail.style.display !== 'none';
-  detail.style.display = isOpen ? 'none' : 'table-row';
-  const arrow = row.querySelector('td:first-child');
-  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
-}
-
-// ──────────────────────────────────────────────────────────
-// AUDIT
-// ──────────────────────────────────────────────────────────
-async function loadAudit() {
-  const tbody = document.getElementById('audit-tbody');
-  tbody.innerHTML = loadingRow(7);
-  const table = document.getElementById('audit-table').value;
-  const days  = document.getElementById('audit-days').value;
-  let url = `${API.audit}?days=${days}&page=${auditPage}&pageSize=30`;
-  if (table) url += `&table=${encodeURIComponent(table)}`;
-  try {
-    const d = await apiFetch(url);
-    if (!d.data?.length) { tbody.innerHTML = emptyRow(7,'Koi audit log nahi','Filter change karein'); return; }
-    tbody.innerHTML = d.data.map(a => `
-      <tr style="cursor:pointer" onclick="toggleAuditDetail(this,'audit-d-${a.auditId || a.AuditId}')">
-        <td style="color:var(--text-muted)">▶</td>
-        <td>${actionBadge(a.action || a.Action)}</td>
-        <td style="font-size:12px"><code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px">${esc(a.tableName || a.TableName)}</code></td>
-        <td style="font-size:12px;color:var(--text-muted)">${esc(a.recordId || a.RecordId ||'—')}</td>
-        <td>${esc(a.changedBy || a.ChangedBy ||'System')}</td>
-        <td style="white-space:nowrap">${fmtTime(a.changedAt || a.ChangedAt)}</td>
-        <td style="font-size:12px;color:var(--text-muted)">${esc(a.notes || a.Notes ||'—')}</td>
-      </tr>
-      <tr id="audit-d-${a.auditId || a.AuditId}" style="display:none" class="detail-row">
-        <td colspan="7">
-          <div class="detail-box">
-            ${(a.oldValues || a.OldValues) ? '<strong>Old Values:</strong><pre>'+esc(JSON.stringify(tryParse(a.oldValues || a.OldValues),null,2))+'</pre>' : ''}
-            ${(a.newValues || a.NewValues) ? '<strong>New Values:</strong><pre>'+esc(JSON.stringify(tryParse(a.newValues || a.NewValues),null,2))+'</pre>' : ''}
-            ${!a.oldValues && !a.OldValues && !a.newValues && !a.NewValues ? '<em>No value details</em>' : ''}
-          </div>
-        </td>
-      </tr>`).join('');
-    renderPagination('audit-pagination', d.total || d.Total, d.page || d.Page, d.totalPages || d.TotalPages);
-  } catch(e) { tbody.innerHTML = errorRow(7, e.message); }
-}
-
-function toggleAuditDetail(row, id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const isOpen = el.style.display !== 'none';
-  el.style.display = isOpen ? 'none' : 'table-row';
-  row.querySelector('td:first-child').textContent = isOpen ? '▶' : '▼';
-}
-
-// ──────────────────────────────────────────────────────────
-// SETTINGS
-// ──────────────────────────────────────────────────────────
-async function loadSettings() {
-  const form = document.getElementById('settings-form');
-  form.innerHTML = '<div class="spinner" style="margin:20px auto;display:block"></div>';
-  try {
-    const configs = await apiFetch(API.globalConfig);
-    form.innerHTML = configs.map(c => {
-      const key = c.configKey || c.ConfigKey;
-      const val = c.configValue || c.ConfigValue || '';
-      const desc = c.description || c.Description || '';
-      return `
-      <div class="form-group">
-        <label>${esc(key)}</label>
-        ${key.toLowerCase().includes('password') || key.toLowerCase().includes('secret')
-          ? `<input type="password" id="cfg-${esc(key)}" value="${esc(val)}">`
-          : `<input type="text" id="cfg-${esc(key)}" value="${esc(val)}">`}
-        ${desc ? `<div class="form-hint">${esc(desc)}</div>` : ''}
-      </div>`;
-    }).join('') +
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-size:12px;color:var(--text-muted)">
-          Last updated: ${configs.reduce((m,c)=> (c.updatedAt||c.UpdatedAt)>m ? (c.updatedAt||c.UpdatedAt) : m, '—')}
-        </div>
-        <button class="btn btn-primary" onclick="saveAllSettings()">💾 Save All Settings</button>
-      </div>`;
-    form._configs = configs;
-  } catch(e) { form.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div>${esc(e.message)}</div></div>`; }
-}
-
-async function saveAllSettings() {
-  const form = document.getElementById('settings-form');
-  const configs = form._configs;
-  if (!configs) { await loadSettings(); return; }
-  const updates = configs.map(c => {
-    const key = c.configKey || c.ConfigKey;
-    const val = c.configValue || c.ConfigValue;
-    return {
-      configKey:   key,
-      configValue: document.getElementById('cfg-'+key)?.value ?? val,
-      updatedBy:   'Admin'
-    };
-  });
-  try {
-    const r = await apiFetch(API.updateConfig, { method:'POST', body: JSON.stringify(updates) });
-    toast(r.message || 'Settings saved!', 'success');
-  } catch(e) { toast(e.message,'error'); }
-}
-
-// ──────────────────────────────────────────────────────────
-// PAGINATION
-// ──────────────────────────────────────────────────────────
-function renderPagination(containerId, total, page, totalPages) {
-  const el = document.getElementById(containerId);
-  if (!el || totalPages <= 1) { if(el) el.innerHTML=''; return; }
-  let html = `<span class="page-info">Total: ${total}</span>`;
-  if (page > 1) html += `<button class="page-btn" onclick="changePage('${containerId}',${page-1})">‹</button>`;
-  for (let i = Math.max(1,page-2); i <= Math.min(totalPages,page+2); i++) {
-    html += `<button class="page-btn ${i===page?'active':''}" onclick="changePage('${containerId}',${i})">${i}</button>`;
-  }
-  if (page < totalPages) html += `<button class="page-btn" onclick="changePage('${containerId}',${page+1})">›</button>`;
-  el.innerHTML = html;
-}
-
-function changePage(containerId, page) {
-  if (containerId === 'dash-pagination')  { dashPage = page;  loadDashboard(page); }
-  if (containerId === 'logs-pagination')  { logsPage = page;  loadLogs();  }
-  if (containerId === 'audit-pagination') { auditPage = page; loadAudit(); }
-}
-
-// ──────────────────────────────────────────────────────────
-// MODAL HELPERS
-// ──────────────────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id)?.classList.add('open'); }
-function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
-
-// Close overlay on backdrop click
-document.querySelectorAll('.overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-});
-
-let _confirmCallback = null;
-function showConfirm(msg, callback, btnText='Yes, Delete') {
-  document.getElementById('confirm-msg').textContent = msg;
-  document.getElementById('confirm-ok-btn').textContent = btnText;
-  _confirmCallback = callback;
-  openModal('modal-confirm');
-}
-document.getElementById('confirm-ok-btn').addEventListener('click', () => {
-  closeModal('modal-confirm');
-  _confirmCallback?.();
-});
-
-function toggleBtn(btn) { btn.classList.toggle('on'); }
-
-// ──────────────────────────────────────────────────────────
-// TOAST
-// ──────────────────────────────────────────────────────────
-function toast(msg, type='info', duration=4000) {
-  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
-  const el = document.createElement('div');
-  el.className = `toast toast-${type}`;
-  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span>
-    <span class="toast-msg">${esc(msg)}</span>
-    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
-  document.getElementById('toast-wrap').appendChild(el);
-  setTimeout(() => el.remove(), duration);
-}
-
-// ──────────────────────────────────────────────────────────
-// UI HELPERS
-// ──────────────────────────────────────────────────────────
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function pad(n) { return String(n!=null?n:'00').padStart(2,'0'); }
-function fmtTime(dt) {
-  if (!dt) return '—';
-  try {
-    return new Date(dt).toLocaleString('en-IN', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    });
-  }
-  catch { return dt; }
-}
-function tryParse(s) { try { return JSON.parse(s); } catch { return s; } }
-function loadingRow(cols) { return `<tr class="loading-row"><td colspan="${cols}"><div class="spinner"></div></td></tr>`; }
-function emptyRow(cols, t, s='') {
-  return `<tr><td colspan="${cols}" class="loading-row">
-    <div class="empty"><div class="empty-icon">📭</div><div class="empty-text">${esc(t)}</div><div class="empty-sub">${esc(s)}</div></div>
-  </td></tr>`;
-}
-function errorRow(cols, msg) {
-  return `<tr><td colspan="${cols}" class="loading-row">
-    <div class="empty"><div class="empty-icon" style="color:var(--error)">⚠️</div><div class="empty-text" style="color:var(--error)">${esc(msg)}</div></div>
-  </td></tr>`;
-}
-
-function statusBadge(status, skipReason='') {
-  const map = {
-    SUCCESS: ['badge-success','✅ Success'],
-    FAILED:  ['badge-error','❌ Failed'],
-    SKIPPED: ['badge-warning','⏭ Skipped'],
-    RUNNING: ['badge-running','🔄 Running'],
+  const body = {
+    jobTypeId: +document.getElementById('jt-id').value,
+    productId: +document.getElementById('jt-product').value,
+    jobTypeCode: document.getElementById('jt-code').value.trim().toUpperCase(),
+    jobTypeName: document.getElementById('jt-name').value.trim(),
+    defaultApiPath: document.getElementById('jt-path').value.trim(),
+    httpMethod: document.getElementById('jt-method').value,
+    description: document.getElementById('jt-desc').value.trim(),
+    isActive: document.getElementById('jt-active').checked,
   };
-  const [cls, label] = map[status] || ['badge-muted', status];
-  const hint = skipReason ? ` <span style="font-size:10px;opacity:0.7">(${esc(skipReason)})</span>` : '';
-  return `<span class="badge ${cls}">${label}${hint}</span>`;
+  if (!body.productId || !body.jobTypeCode) return toast('Product and Code are required','error');
+  try {
+    await api('POST', '/api/jobtypes/save', body);
+    toast('Job Type saved!'); closeModal('modal-jobtype'); loadJobTypes();
+  } catch(e) { toast(e.message,'error'); }
 }
 
-function jobTypeBadge(code) {
-  const colors = { AbsentWhatsApp:'badge-info', FeeReminder:'badge-warning', AttendanceReport:'badge-success', ResultNotification:'badge-muted', CustomApiCall:'badge-running' };
-  return `<span class="badge ${colors[code]||'badge-muted'}">${esc(code||'—')}</span>`;
+async function deleteJobType(id) {
+  if (!confirm('Delete this job type?')) return;
+  try { await api('DELETE', `/api/jobtypes/${id}`); toast('Deleted!'); loadJobTypes(); }
+  catch(e) { toast(e.message,'error'); }
 }
 
-function triggerBadge(t) {
-  const map = { MANUAL:'badge-warning', SCHEDULED:'badge-info', RETRY:'badge-muted' };
-  return `<span class="badge ${map[t]||'badge-muted'}">${esc(t||'—')}</span>`;
+// ═══════════════════════════════════════════════════════════════
+// CLIENTS
+// ═══════════════════════════════════════════════════════════════
+async function loadClients() {
+  const pid = document.getElementById('cl-product-filter')?.value;
+  const q   = document.getElementById('cl-q')?.value;
+  try {
+    let url = '/api/clients?';
+    if (pid) url += `productId=${pid}&`;
+    if (q)   url += `q=${encodeURIComponent(q)}&`;
+    const data = await api('GET', url);
+    const rows = data.map((c,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><span class="badge badge-running">${c.productName}</span></td>
+        <td><b>${c.clientName}</b></td>
+        <td><code>${c.externalId}</code></td>
+        <td>${c.customBaseUrl||'<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${c.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editClient(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.clientId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('clients-body').innerHTML = rows || emptyRow(7,'No clients');
+  } catch(e) { document.getElementById('clients-body').innerHTML = emptyRow(7,e.message,true); }
 }
 
-function actionBadge(a) {
-  const map = { INSERT:'badge-success', UPDATE:'badge-info', DELETE:'badge-error', TRIGGER:'badge-warning' };
-  return `<span class="badge ${map[a]||'badge-muted'}">${esc(a)}</span>`;
+function openClientModal(c) {
+  populateProductDropdowns();
+  document.getElementById('cl-id').value = c?.clientId||0;
+  document.getElementById('cl-product').value = c?.productId||'';
+  document.getElementById('cl-name').value = c?.clientName||'';
+  document.getElementById('cl-extid').value = c?.externalId||'';
+  document.getElementById('cl-baseurl').value = c?.customBaseUrl||'';
+  document.getElementById('cl-active').checked = c ? c.isActive : true;
+  document.getElementById('client-modal-title').textContent = c ? 'Edit Client' : 'Add Client';
+  openModal('modal-client');
+}
+function editClient(c) { openClientModal(c); }
+
+async function saveClient() {
+  const body = {
+    clientId: +document.getElementById('cl-id').value,
+    productId: +document.getElementById('cl-product').value,
+    clientName: document.getElementById('cl-name').value.trim(),
+    externalId: document.getElementById('cl-extid').value.trim(),
+    customBaseUrl: document.getElementById('cl-baseurl').value.trim()||null,
+    isActive: document.getElementById('cl-active').checked,
+  };
+  if (!body.productId || !body.externalId) return toast('Product and External ID are required','error');
+  try {
+    await api('POST', '/api/clients/save', body);
+    toast('Client saved!'); closeModal('modal-client'); loadClients();
+  } catch(e) { toast(e.message,'error'); }
 }
 
-function httpBadge(code) {
-  if (code >= 200 && code < 300) return `<span class="badge badge-success">${code}</span>`;
-  if (code >= 400 && code < 500) return `<span class="badge badge-warning">${code}</span>`;
-  if (code >= 500) return `<span class="badge badge-error">${code}</span>`;
-  return `<span class="badge badge-muted">${code}</span>`;
+async function deleteClient(id) {
+  if (!confirm('Delete this client?')) return;
+  try { await api('DELETE', `/api/clients/${id}`); toast('Deleted!'); loadClients(); }
+  catch(e) { toast(e.message,'error'); }
 }
 
-// ESC key closes modals
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
-});
+// ═══════════════════════════════════════════════════════════════
+// SCHEDULES
+// ═══════════════════════════════════════════════════════════════
+async function loadSchedules() {
+  const pid = document.getElementById('sc-product-filter')?.value;
+  try {
+    const data = await api('GET', `/api/scheduler${pid?`?productId=${pid}`:''}`);
+    const rows = data.map((s,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><span class="badge badge-running">${s.productCode}</span></td>
+        <td><b>${s.clientName}</b></td>
+        <td><code>${s.externalId}</code></td>
+        <td>${s.jobTypeName}</td>
+        <td><b>${String(s.scheduledHour).padStart(2,'0')}:${String(s.scheduledMinute).padStart(2,'0')}</b></td>
+        <td><span class="badge badge-skipped">${s.timeZone?.replace(' Standard Time','')}</span></td>
+        <td>${s.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-success btn-sm" title="Manual Trigger" onclick="triggerSchedule(${s.instanceId})">▶</button>
+          <button class="btn btn-secondary btn-sm" onclick="editSchedule(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${s.instanceId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('schedules-body').innerHTML = rows || emptyRow(9,'No schedules');
+  } catch(e) { document.getElementById('schedules-body').innerHTML = emptyRow(9,e.message,true); }
+}
+
+async function loadClientsForSchedule() {
+  const pid = document.getElementById('sc-product').value;
+  const sel = document.getElementById('sc-client');
+  sel.innerHTML = '<option value="">Loading...</option>';
+  try {
+    const data = await api('GET', `/api/clients?productId=${pid}`);
+    sel.innerHTML = '<option value="">Select Client</option>' + data.map(c => `<option value="${c.clientId}">${c.clientName} (${c.externalId})</option>`).join('');
+  } catch { sel.innerHTML = '<option value="">Error loading</option>'; }
+}
+
+async function loadJobTypesForSchedule() {
+  const pid = document.getElementById('sc-product').value;
+  const sel = document.getElementById('sc-jobtype');
+  sel.innerHTML = '<option value="">Loading...</option>';
+  try {
+    const data = await api('GET', `/api/jobtypes?productId=${pid}`);
+    sel.innerHTML = '<option value="">Select Job Type</option>' + data.map(j => `<option value="${j.jobTypeId}">${j.jobTypeName}</option>`).join('');
+  } catch { sel.innerHTML = '<option value="">Error loading</option>'; }
+}
+
+function openScheduleModal(s) {
+  populateProductDropdowns();
+  document.getElementById('sc-id').value = s?.instanceId||0;
+  document.getElementById('sc-product').value = s?.productId||'';
+  document.getElementById('sc-hour').value = s?.scheduledHour??10;
+  document.getElementById('sc-minute').value = s?.scheduledMinute??0;
+  document.getElementById('sc-tz').value = s?.timeZone||'India Standard Time';
+  document.getElementById('sc-payload').value = s?.payloadJson||'';
+  document.getElementById('sc-apipath').value = s?.customApiPath||'';
+  document.getElementById('sc-token').value = '';
+  document.getElementById('sc-misfire').value = s?.misfireThresholdMinutes||15;
+  document.getElementById('sc-active').checked = s ? s.isActive : true;
+  document.getElementById('sc-holidays').checked = s?.runOnHolidays||false;
+  document.getElementById('schedule-modal-title').textContent = s ? 'Edit Schedule' : 'Add Schedule';
+  if (s?.productId) {
+    document.getElementById('sc-product').value = s.productId;
+    loadClientsForSchedule().then(() => { document.getElementById('sc-client').value = s.clientId||''; });
+    loadJobTypesForSchedule().then(() => { document.getElementById('sc-jobtype').value = s.jobTypeId||''; });
+  }
+  openModal('modal-schedule');
+}
+function editSchedule(s) { openScheduleModal(s); }
+
+async function saveSchedule() {
+  const body = {
+    instanceId: +document.getElementById('sc-id').value,
+    clientId: +document.getElementById('sc-client').value,
+    productId: +document.getElementById('sc-product').value,
+    jobTypeId: +document.getElementById('sc-jobtype').value,
+    scheduledHour: +document.getElementById('sc-hour').value,
+    scheduledMinute: +document.getElementById('sc-minute').value,
+    timeZone: document.getElementById('sc-tz').value,
+    payloadJson: document.getElementById('sc-payload').value.trim()||null,
+    customApiPath: document.getElementById('sc-apipath').value.trim()||null,
+    customApiToken: document.getElementById('sc-token').value.trim()||'••••••••',
+    misfireThresholdMinutes: +document.getElementById('sc-misfire').value||15,
+    isActive: document.getElementById('sc-active').checked,
+    runOnHolidays: document.getElementById('sc-holidays').checked,
+  };
+  if (!body.clientId || !body.jobTypeId) return toast('Client and Job Type are required','error');
+  try {
+    await api('POST', '/api/scheduler/save', body);
+    toast('Schedule saved!'); closeModal('modal-schedule'); loadSchedules();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function triggerSchedule(instanceId) {
+  if (!confirm('Manually trigger this job now?')) return;
+  try {
+    await api('POST', `/api/scheduler/trigger?instanceId=${instanceId}`);
+    toast('Job enqueued!');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteSchedule(id) {
+  if (!confirm('Delete this schedule?')) return;
+  try { await api('DELETE', `/api/scheduler/${id}`); toast('Deleted!'); loadSchedules(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+async function loadDashboard(page) {
+  dashPage = page;
+  const q       = document.getElementById('dash-q')?.value;
+  const status  = document.getElementById('dash-status')?.value;
+  const pid     = document.getElementById('dash-product')?.value;
+  let url = `/api/scheduler/dashboard?page=${page}&pageSize=10`;
+  if (q)      url += `&q=${encodeURIComponent(q)}`;
+  if (status) url += `&status=${status}`;
+  if (pid)    url += `&productId=${pid}`;
+  try {
+    const d = await api('GET', url);
+    // Stats
+    const st = d.stats || d.Stats || {};
+    document.getElementById('s-products').textContent  = st.totalProducts  ?? st.TotalProducts  ?? 0;
+    document.getElementById('s-clients').textContent   = st.totalClients   ?? st.TotalClients   ?? 0;
+    document.getElementById('s-schedules').textContent = st.activeSchedules?? st.ActiveSchedules?? 0;
+    document.getElementById('s-success').textContent   = st.successToday   ?? st.SuccessToday   ?? 0;
+    document.getElementById('s-failed').textContent    = st.failedToday    ?? st.FailedToday    ?? 0;
+    document.getElementById('s-running').textContent   = st.runningNow     ?? st.RunningNow     ?? 0;
+    // Logs
+    const logs = d.recentLogs ?? d.RecentLogs ?? [];
+    const rows = logs.map(l => `
+      <tr>
+        <td><span class="badge badge-running">${l.productName||'—'}</span></td>
+        <td>${l.clientName||'—'}</td>
+        <td><code>${l.externalId||'—'}</code></td>
+        <td>${l.jobTypeCode||'—'}</td>
+        <td><span class="badge badge-skipped">${l.triggerType}</span></td>
+        <td>${formatDate(l.startedAt)}</td>
+        <td>${l.durationSeconds ? l.durationSeconds+'s' : '—'}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--error);font-size:12px">${l.errorMessage||''}</td>
+      </tr>`).join('');
+    document.getElementById('dash-logs-body').innerHTML = rows || emptyRow(9,'No recent activity');
+    // Pagination
+    buildPagination('dash-pagination', d.page ?? d.Page, d.totalPages ?? d.TotalPages, loadDashboard);
+  } catch(e) {
+    document.getElementById('dash-logs-body').innerHTML = emptyRow(9,e.message,true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGS
+// ═══════════════════════════════════════════════════════════════
+async function loadLogs(page) {
+  logsPage = page;
+  const q   = document.getElementById('log-q')?.value;
+  const st  = document.getElementById('log-status')?.value;
+  const pid = document.getElementById('log-product')?.value;
+  let url = `/api/logs?page=${page}&pageSize=20`;
+  if (q)   url += `&q=${encodeURIComponent(q)}`;
+  if (st)  url += `&status=${st}`;
+  if (pid) url += `&productId=${pid}`;
+  try {
+    const d = await api('GET', url);
+    const rows = d.logs.map(l => `
+      <tr>
+        <td>${l.logId}</td>
+        <td><span class="badge badge-running">${l.productName||'—'}</span></td>
+        <td>${l.clientName||'—'}</td>
+        <td><code>${l.externalId||'—'}</code></td>
+        <td>${l.jobTypeCode||'—'}</td>
+        <td><span class="badge badge-skipped">${l.triggerType}</span></td>
+        <td>${formatDate(l.startedAt)}</td>
+        <td>${l.durationSeconds?l.durationSeconds+'s':'—'}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td class="actions-cell"><button class="btn btn-secondary btn-sm" onclick="viewLog(${l.logId})">Detail</button></td>
+      </tr>`).join('');
+    document.getElementById('logs-body').innerHTML = rows || emptyRow(10,'No logs');
+    buildPagination('logs-pagination', d.page, d.totalPages, loadLogs);
+  } catch(e) { document.getElementById('logs-body').innerHTML = emptyRow(10,e.message,true); }
+}
+
+async function viewLog(logId) {
+  try {
+    const l = await api('GET', `/api/logs/${logId}`);
+    document.getElementById('log-detail-body').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        ${row2('Log ID', l.logId)}
+        ${row2('Client', l.clientName)}
+        ${row2('External ID', `<code>${l.externalId}</code>`)}
+        ${row2('Job Type', l.jobTypeCode)}
+        ${row2('Trigger', l.triggerType)}
+        ${row2('Status', statusBadge(l.status))}
+        ${row2('Started At', formatDate(l.startedAt))}
+        ${row2('Completed At', l.completedAt ? formatDate(l.completedAt) : '—')}
+        ${row2('Duration', l.durationSeconds ? l.durationSeconds+'s' : '—')}
+        ${row2('HTTP Status', l.httpStatusCode||'—')}
+        ${row2('API URL', `<span style="word-break:break-all;font-size:11px">${l.apiUrl||'—'}</span>`)}
+        ${row2('Payload Sent', l.payloadSent ? `<pre style="font-size:11px;white-space:pre-wrap">${l.payloadSent}</pre>` : '—')}
+        ${row2('Error', l.errorMessage ? `<span style="color:var(--error)">${l.errorMessage}</span>` : '—')}
+        ${row2('Response', l.responseBody ? `<pre style="font-size:11px;white-space:pre-wrap;max-height:200px;overflow-y:auto">${l.responseBody}</pre>` : '—')}
+      </table>`;
+    openModal('modal-log');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function row2(label, val) {
+  return `<tr><td style="padding:8px 12px;font-weight:600;background:#f8fafc;border:1px solid #e2e8f0;width:130px">${label}</td><td style="padding:8px 12px;border:1px solid #e2e8f0">${val}</td></tr>`;
+}
+
+async function purgeLogs() {
+  const days = prompt('Delete logs older than how many days?', '30');
+  if (!days) return;
+  try {
+    const r = await api('DELETE', `/api/logs/purge?olderThanDays=${days}`);
+    toast(r.message); loadLogs(1);
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// API CLIENTS
+// ═══════════════════════════════════════════════════════════════
+async function loadApiClients() {
+  try {
+    const data = await api('GET', '/api/apiclients');
+    const rows = data.map((ac,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><b>${ac.clientName}</b></td>
+        <td><code style="font-size:12px">${ac.apiKey}</code></td>
+        <td>${ac.allowedProductIds||'<span style="color:var(--text-muted)">All</span>'}</td>
+        <td>${ac.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td>${ac.lastUsedAt ? formatDate(ac.lastUsedAt) : '<span style="color:var(--text-muted)">Never</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editApiClient(${JSON.stringify(ac).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-warning btn-sm" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="regenerateKey(${ac.apiClientId})">🔄 Regen</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteApiClient(${ac.apiClientId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('apiclients-body').innerHTML = rows || emptyRow(7,'No API clients');
+  } catch(e) { document.getElementById('apiclients-body').innerHTML = emptyRow(7,e.message,true); }
+}
+
+function openApiClientModal(ac) {
+  document.getElementById('ac-id').value = ac?.apiClientId||0;
+  document.getElementById('ac-name').value = ac?.clientName||'';
+  document.getElementById('ac-products').value = ac?.allowedProductIds||'';
+  document.getElementById('ac-active').checked = ac ? ac.isActive : true;
+  document.getElementById('new-key-display').style.display = 'none';
+  document.getElementById('ac-save-btn').style.display = '';
+  document.getElementById('apiclient-modal-title').textContent = ac ? 'Edit API Client' : 'New API Client';
+  openModal('modal-apiclient');
+}
+function editApiClient(ac) { openApiClientModal(ac); }
+
+async function saveApiClient() {
+  const body = {
+    apiClientId: +document.getElementById('ac-id').value,
+    clientName: document.getElementById('ac-name').value.trim(),
+    allowedProductIds: document.getElementById('ac-products').value.trim()||null,
+    isActive: document.getElementById('ac-active').checked,
+  };
+  if (!body.clientName) return toast('Client name is required','error');
+  try {
+    const r = await api('POST', '/api/apiclients/save', body);
+    if (r.apiKey) {
+      document.getElementById('new-key-value').textContent = r.apiKey;
+      document.getElementById('new-key-display').style.display = 'block';
+      document.getElementById('ac-save-btn').style.display = 'none';
+      toast('API Key generated! Copy it now.');
+    } else {
+      toast('API Client updated!');
+      closeModal('modal-apiclient');
+    }
+    loadApiClients();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function regenerateKey(id) {
+  if (!confirm('Generate a new API key? The old key will stop working.')) return;
+  try {
+    const r = await api('POST', `/api/apiclients/${id}/regenerate`);
+    document.getElementById('new-key-value').textContent = r.apiKey;
+    document.getElementById('new-key-display').style.display = 'block';
+    document.getElementById('ac-id').value = id;
+    document.getElementById('ac-save-btn').style.display = 'none';
+    openModal('modal-apiclient');
+    toast('Key regenerated! Copy it now.','warning');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteApiClient(id) {
+  if (!confirm('Delete this API client? The key will stop working.')) return;
+  try { await api('DELETE', `/api/apiclients/${id}`); toast('Deleted!'); loadApiClients(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+function copyKey() {
+  const key = document.getElementById('new-key-value').textContent;
+  navigator.clipboard.writeText(key).then(() => toast('Key copied!'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════
+async function loadSettings() {
+  try {
+    const data = await api('GET', '/api/globalconfig');
+    const rows = data.map(cfg => `
+      <div style="display:grid;grid-template-columns:200px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <div>
+          <div style="font-weight:600;font-size:13px">${cfg.configKey}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${cfg.description||''}</div>
+        </div>
+        <input type="${cfg.configKey.toLowerCase().includes('password')?'password':'text'}"
+          id="cfg-${cfg.configKey}" value="${cfg.configValue||''}"
+          style="border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+        <button class="btn btn-primary btn-sm" onclick="saveSetting('${cfg.configKey}')">Save</button>
+      </div>`).join('');
+    document.getElementById('settings-body').innerHTML = rows || '<p style="color:var(--text-muted);padding:20px">No settings found.</p>';
+  } catch(e) { document.getElementById('settings-body').innerHTML = `<p style="color:var(--error);padding:20px">${e.message}</p>`; }
+}
+
+async function saveSetting(key) {
+  const val = document.getElementById(`cfg-${key}`)?.value;
+  try {
+    await api('POST', '/api/globalconfig/update', { configKey: key, configValue: val, updatedBy: 'Admin' });
+    toast(`${key} saved!`);
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function statusBadge(s) {
+  const map = { SUCCESS:'badge-success', FAILED:'badge-error', SKIPPED:'badge-skipped', RUNNING:'badge-running' };
+  return `<span class="badge ${map[s]||'badge-skipped'}">${s||'—'}</span>`;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-IN', {
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false
+  });
+}
+
+function emptyRow(cols, msg, isError=false) {
+  return `<tr><td colspan="${cols}" style="text-align:center;padding:30px;color:${isError?'var(--error)':'var(--text-muted)'}">
+    ${isError?'❌':'📭'} ${msg}</td></tr>`;
+}
+
+function buildPagination(containerId, page, totalPages, callback) {
+  const container = document.getElementById(containerId);
+  if (!container || totalPages <= 1) { if(container) container.innerHTML=''; return; }
+  let html = `<button onclick="${callback.name}(${page-1})" ${page<=1?'disabled':''}>‹ Prev</button>`;
+  for (let i = Math.max(1,page-2); i <= Math.min(totalPages,page+2); i++) {
+    html += `<button class="${i===page?'active':''}" onclick="${callback.name}(${i})">${i}</button>`;
+  }
+  html += `<button onclick="${callback.name}(${page+1})" ${page>=totalPages?'disabled':''}>Next ›</button>`;
+  html += `<span class="pagination-info">Page ${page} / ${totalPages}</span>`;
+  container.innerHTML = html;
+}
 </script>
 </body>
 </html>

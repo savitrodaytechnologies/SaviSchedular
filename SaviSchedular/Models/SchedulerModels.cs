@@ -1,51 +1,122 @@
 using System;
+using System.Collections.Generic;
 
 namespace SaviSchedular.Models
 {
-    // ─── DB Entity Models ───────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // DB ENTITY MODELS
+    // ═══════════════════════════════════════════════════════════════
+
+    public class ProductModel
+    {
+        public int    ProductId       { get; set; }
+        public string ProductCode     { get; set; }
+        public string ProductName     { get; set; }
+        public string BaseUrl         { get; set; }
+        public string ApiToken        { get; set; }
+        public string TokenType       { get; set; }
+        public string TokenHeaderName { get; set; }
+        public string Description     { get; set; }
+        public bool   IsActive        { get; set; }
+        public DateTime CreatedAt     { get; set; }
+        public string CreatedBy       { get; set; }
+    }
+
+    public class ProductJobTypeModel
+    {
+        public int    JobTypeId      { get; set; }
+        public int    ProductId      { get; set; }
+        public string ProductName    { get; set; }  // JOIN for display
+        public string JobTypeCode    { get; set; }
+        public string JobTypeName    { get; set; }
+        public string DefaultApiPath { get; set; }
+        public string HttpMethod     { get; set; }
+        public string Description    { get; set; }
+        public bool   IsActive       { get; set; }
+        public DateTime CreatedAt    { get; set; }
+    }
+
+    public class ProductClientModel
+    {
+        public long   ClientId      { get; set; }
+        public int    ProductId     { get; set; }
+        public string ProductName   { get; set; }  // JOIN for display
+        public string ClientName    { get; set; }
+        public string ExternalId    { get; set; }
+        public string CustomBaseUrl { get; set; }
+        public bool   IsActive      { get; set; }
+        public DateTime CreatedAt   { get; set; }
+        public string CreatedBy     { get; set; }
+    }
 
     public class SchedulerJobInstanceModel
     {
         public long   InstanceId              { get; set; }
-        public long   SchoolId                { get; set; }
-        public string JobTypeCode             { get; set; }
-        public string JobTypeName             { get; set; }
-        public int    ScheduledHour           { get; set; }
-        public int    ScheduledMinute         { get; set; }
-        public string TimeZone                { get; set; }
-        public bool   IsActive                { get; set; }
-        public bool   RunOnHolidays           { get; set; }
-        public int    MisfireThresholdMinutes { get; set; }
-        public DateTime CreatedAt             { get; set; }
-        public DateTime UpdatedAt             { get; set; }
-        public string CreatedBy               { get; set; }
+        public long   ClientId               { get; set; }
+        public int    ProductId              { get; set; }
+        public int    JobTypeId              { get; set; }
+        // JOIN fields for display
+        public string ClientName             { get; set; }
+        public string ExternalId             { get; set; }
+        public string ProductName            { get; set; }
+        public string ProductCode            { get; set; }
+        public string JobTypeCode            { get; set; }
+        public string JobTypeName            { get; set; }
+        public string DefaultApiPath         { get; set; }
+        public string BaseUrl                { get; set; }
+        public string CustomBaseUrl          { get; set; }
+        public string ApiToken               { get; set; }
+        public string TokenType              { get; set; }
+        public string TokenHeaderName        { get; set; }
+        // Instance-specific
+        public string CustomApiPath          { get; set; }
+        public string CustomApiToken         { get; set; }
+        public string PayloadJson            { get; set; }
+        public string HttpMethod             { get; set; }
+        public int    ScheduledHour          { get; set; }
+        public int    ScheduledMinute        { get; set; }
+        public string TimeZone               { get; set; }
+        public bool   IsActive               { get; set; }
+        public bool   RunOnHolidays          { get; set; }
+        public int    MisfireThresholdMinutes{ get; set; }
+        public DateTime CreatedAt            { get; set; }
+        public DateTime UpdatedAt            { get; set; }
+        public string CreatedBy              { get; set; }
     }
 
-    public class JobTypeModel
+    public class ExecutionLogModel
     {
-        public int    JobTypeId      { get; set; }
-        public string JobTypeCode    { get; set; }
-        public string JobTypeName    { get; set; }
-        public string Description    { get; set; }
-        public string DefaultApiPath { get; set; }
-        public string HttpMethod     { get; set; }
-        public bool   IsActive       { get; set; }
-        public DateTime CreatedAt    { get; set; }
+        public long    LogId           { get; set; }
+        public long?   InstanceId      { get; set; }
+        public long?   ClientId        { get; set; }
+        public int?    ProductId       { get; set; }
+        public string  ClientName      { get; set; }
+        public string  ExternalId      { get; set; }
+        public string  JobTypeCode     { get; set; }
+        public string  TriggerType     { get; set; }
+        public DateTime StartedAt      { get; set; }
+        public DateTime? CompletedAt   { get; set; }
+        public decimal? DurationSeconds{ get; set; }
+        public string  Status          { get; set; }
+        public string  SkipReason      { get; set; }
+        public string  ApiUrl          { get; set; }
+        public string  PayloadSent     { get; set; }
+        public int?    HttpStatusCode  { get; set; }
+        public string  ResponseBody    { get; set; }
+        public string  ErrorMessage    { get; set; }
+        public string  HangfireJobId   { get; set; }
     }
 
-    public class SchoolApiConfigModel
+    public class ApiClientModel
     {
-        public long   ConfigId       { get; set; }
-        public long   SchoolId       { get; set; }
-        public string JobTypeCode    { get; set; }
-        public string BaseUrl        { get; set; }
-        public string ApiPath        { get; set; }
-        public string HttpMethod     { get; set; }
-        public string CustomHeaders  { get; set; }
-        public int    TimeoutMinutes { get; set; }
-        public bool   IsActive       { get; set; }
-        public DateTime CreatedAt    { get; set; }
-        public DateTime UpdatedAt    { get; set; }
+        public int    ApiClientId       { get; set; }
+        public string ClientName        { get; set; }
+        public string ApiKey            { get; set; }
+        public string AllowedProductIds { get; set; }
+        public bool   IsActive          { get; set; }
+        public DateTime CreatedAt       { get; set; }
+        public string CreatedBy         { get; set; }
+        public DateTime? LastUsedAt     { get; set; }
     }
 
     public class GlobalConfigModel
@@ -55,25 +126,6 @@ namespace SaviSchedular.Models
         public string Description { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string UpdatedBy   { get; set; }
-    }
-
-    public class ExecutionLogModel
-    {
-        public long    LogId           { get; set; }
-        public long    SchoolId        { get; set; }
-        public string  SchoolName      { get; set; }
-        public string  JobTypeCode     { get; set; }
-        public string  TriggerType     { get; set; }
-        public DateTime StartedAt      { get; set; }
-        public DateTime? CompletedAt   { get; set; }
-        public decimal? DurationSeconds{ get; set; }
-        public string  Status          { get; set; }
-        public string  SkipReason      { get; set; }
-        public string  ApiUrl          { get; set; }
-        public int?    HttpStatusCode  { get; set; }
-        public string  ResponseBody    { get; set; }
-        public string  ErrorMessage    { get; set; }
-        public string  HangfireJobId   { get; set; }
     }
 
     public class AuditLogModel
@@ -90,39 +142,68 @@ namespace SaviSchedular.Models
         public string Notes     { get; set; }
     }
 
-    // ─── Request Models ──────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // REQUEST MODELS
+    // ═══════════════════════════════════════════════════════════════
 
-    public class SaveScheduleRequest
+    public class SaveProductRequest
     {
-        public long   SchoolId                { get; set; }
-        public string JobTypeCode             { get; set; }
-        public int    Hour                    { get; set; }
-        public int    Minute                  { get; set; }
-        public string TimeZone                { get; set; }
-        public bool   RunOnHolidays           { get; set; }
-        public int    MisfireThresholdMinutes { get; set; }
-        public string CreatedBy               { get; set; }
-    }
-
-    public class SaveApiConfigRequest
-    {
-        public long   SchoolId       { get; set; }
-        public string JobTypeCode    { get; set; }
-        public string BaseUrl        { get; set; }
-        public string ApiPath        { get; set; }
-        public string HttpMethod     { get; set; }
-        public string CustomHeaders  { get; set; }
-        public int    TimeoutMinutes { get; set; }
+        public int    ProductId       { get; set; }
+        public string ProductCode     { get; set; }
+        public string ProductName     { get; set; }
+        public string BaseUrl         { get; set; }
+        public string ApiToken        { get; set; }
+        public string TokenType       { get; set; }
+        public string TokenHeaderName { get; set; }
+        public string Description     { get; set; }
+        public bool   IsActive        { get; set; }
     }
 
     public class SaveJobTypeRequest
     {
         public int    JobTypeId      { get; set; }
+        public int    ProductId      { get; set; }
         public string JobTypeCode    { get; set; }
         public string JobTypeName    { get; set; }
-        public string Description    { get; set; }
         public string DefaultApiPath { get; set; }
         public string HttpMethod     { get; set; }
+        public string Description    { get; set; }
+        public bool   IsActive       { get; set; }
+    }
+
+    public class SaveClientRequest
+    {
+        public long   ClientId      { get; set; }
+        public int    ProductId     { get; set; }
+        public string ClientName    { get; set; }
+        public string ExternalId    { get; set; }
+        public string CustomBaseUrl { get; set; }
+        public bool   IsActive      { get; set; }
+    }
+
+    public class SaveScheduleRequest
+    {
+        public long   InstanceId              { get; set; }
+        public long   ClientId               { get; set; }
+        public int    ProductId              { get; set; }
+        public int    JobTypeId              { get; set; }
+        public string CustomApiPath          { get; set; }
+        public string CustomApiToken         { get; set; }
+        public string PayloadJson            { get; set; }
+        public int    ScheduledHour          { get; set; }
+        public int    ScheduledMinute        { get; set; }
+        public string TimeZone               { get; set; }
+        public bool   IsActive               { get; set; }
+        public bool   RunOnHolidays          { get; set; }
+        public int    MisfireThresholdMinutes{ get; set; }
+    }
+
+    public class SaveApiClientRequest
+    {
+        public int    ApiClientId       { get; set; }
+        public string ClientName        { get; set; }
+        public string AllowedProductIds { get; set; }
+        public bool   IsActive          { get; set; }
     }
 
     public class UpdateGlobalConfigRequest
@@ -132,20 +213,39 @@ namespace SaviSchedular.Models
         public string UpdatedBy   { get; set; }
     }
 
-    public class TestConnectionRequest
+    // ═══════════════════════════════════════════════════════════════
+    // EXTERNAL API REQUEST MODELS
+    // ═══════════════════════════════════════════════════════════════
+
+    public class ExternalScheduleRequest
     {
-        public string BaseUrl    { get; set; }
-        public string ApiPath    { get; set; }
-        public string HttpMethod { get; set; }
-        public long   SchoolId   { get; set; }
+        public string ProductCode     { get; set; }
+        public string JobTypeCode     { get; set; }
+        public string ExternalId      { get; set; }
+        public string ClientName      { get; set; }
+        public int    ScheduledHour   { get; set; }
+        public int    ScheduledMinute { get; set; }
+        public string PayloadJson     { get; set; }
+        public bool   IsActive        { get; set; }
+        public string TimeZone        { get; set; }
     }
 
-    // ─── Response / DTO Models ───────────────────────────────────────────────
+    public class ExternalTriggerRequest
+    {
+        public string ProductCode { get; set; }
+        public string JobTypeCode { get; set; }
+        public string ExternalId  { get; set; }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RESPONSE / DTO MODELS
+    // ═══════════════════════════════════════════════════════════════
 
     public class DashboardStats
     {
-        public int ActiveSchools  { get; set; }
-        public int ActiveJobs     { get; set; }
+        public int TotalProducts  { get; set; }
+        public int TotalClients   { get; set; }
+        public int ActiveSchedules{ get; set; }
         public int SuccessToday   { get; set; }
         public int FailedToday    { get; set; }
         public int SkippedToday   { get; set; }
@@ -154,11 +254,11 @@ namespace SaviSchedular.Models
 
     public class DashboardResponse
     {
-        public DashboardStats Stats { get; set; }
-        public object RecentLogs { get; set; }
-        public int Total { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalPages { get; set; }
+        public DashboardStats Stats      { get; set; }
+        public object         RecentLogs { get; set; }
+        public int            Total      { get; set; }
+        public int            Page       { get; set; }
+        public int            PageSize   { get; set; }
+        public int            TotalPages { get; set; }
     }
 }

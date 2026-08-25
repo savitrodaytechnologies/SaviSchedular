@@ -2,29 +2,28 @@ using System;
 using System.Configuration;
 using System.Data.SqlClient;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using Hangfire;
+using Newtonsoft.Json;
 using SaviSchedular.Models;
 
 namespace SaviSchedular.Services
 {
     /// <summary>
-    /// Universal Scheduler Service — Hangfire jobs register/execute karta hai.
-    /// Multiple job types, per-school API config, timezone support, DB logging.
+    /// Universal Scheduler Service v2.0
+    /// Executes jobs for any Product/Client/JobType combination.
+    /// Token auth, PayloadJson POST body, Hangfire integration.
     /// </summary>
     public class SchoolSchedulerService
     {
-        /// <summary>SaviSchedular DB — scheduler tables</summary>
         private static string SchedConn
             => ConfigurationManager.ConnectionStrings["SaviSchedularConnection"].ConnectionString;
 
-        /// <summary>Production DB — SchoolCalendar holiday check ke liye</summary>
-        private static string ProdConn
-            => ConfigurationManager.ConnectionStrings["DefaultConnection"]?.ConnectionString;
-
         // ═════════════════════════════════════════════════════════════════════
-        // STARTUP — DB se sabhi active jobs load karo aur Hangfire mein register
+        // STARTUP — Load all active jobs from DB and register in Hangfire
         // ═════════════════════════════════════════════════════════════════════
         public static void RegisterAllJobsFromDb()
         {
@@ -33,114 +32,96 @@ namespace SaviSchedular.Services
                 using (var conn = new SqlConnection(SchedConn))
                 {
                     conn.Open();
-                    var instances = conn.Query<SchedulerJobInstanceModel>(@"
-                        SELECT InstanceId, SchoolId, JobTypeCode,
-                               ScheduledHour, ScheduledMinute, TimeZone, IsActive,
-                               RunOnHolidays, MisfireThresholdMinutes
-                        FROM   SchedulerJobInstances
-                        WHERE  IsActive = 1
-                        ORDER  BY SchoolId, JobTypeCode").AsList();
+                    var instances = conn.Query<long>(@"
+                        SELECT InstanceId FROM SchedulerJobInstances WHERE IsActive=1").AsList();
 
-                    Console.WriteLine($"[SaviSchedular] {instances.Count} active job(s) DB se load hue.");
-
-                    foreach (var inst in instances)
-                        RegisterJob(inst);
+                    Console.WriteLine($"[SaviSchedular v2] {instances.Count} active job(s) found in DB.");
+                    foreach (var instanceId in instances)
+                        RegisterJobByInstanceId(instanceId);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SaviSchedular] STARTUP ERROR: {ex.Message}");
+                Console.WriteLine($"[SaviSchedular v2] STARTUP ERROR: {ex.Message}");
             }
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // REGISTER — Ek job ko Hangfire mein add/update karo
+        // REGISTER — Load instance from DB and add to Hangfire
         // ═════════════════════════════════════════════════════════════════════
-        public static void RegisterJob(SchedulerJobInstanceModel inst)
+        public static void RegisterJobByInstanceId(long instanceId)
         {
             try
             {
-                var tz = SafeGetTimezone(inst.TimeZone);
-                string jobId = GetJobId(inst.SchoolId, inst.JobTypeCode);
+                var inst = LoadInstance(instanceId);
+                if (inst == null)
+                {
+                    Console.WriteLine($"[SaviSchedular v2] RegisterJob: InstanceId {instanceId} not found.");
+                    return;
+                }
+
+                var tz    = SafeGetTimezone(inst.TimeZone);
+                string jobId = GetJobId(instanceId);
 
                 RecurringJob.AddOrUpdate(
                     jobId,
-                    () => ExecuteJobAsync(inst.SchoolId, inst.JobTypeCode, false),
+                    () => ExecuteJobAsync(instanceId, false),
                     Cron.Daily(inst.ScheduledHour, inst.ScheduledMinute),
                     tz
                 );
 
                 Console.WriteLine(
-                    $"[SaviSchedular] ✓ Registered: School {inst.SchoolId} | {inst.JobTypeCode} → " +
-                    $"{inst.ScheduledHour:D2}:{inst.ScheduledMinute:D2} [{inst.TimeZone}]");
+                    $"[SaviSchedular v2] ✓ Registered: [{inst.ProductCode}] {inst.ClientName} ({inst.ExternalId}) | " +
+                    $"{inst.JobTypeCode} → {inst.ScheduledHour:D2}:{inst.ScheduledMinute:D2} [{inst.TimeZone}]");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SaviSchedular] RegisterJob ERROR (School {inst.SchoolId} | {inst.JobTypeCode}): {ex.Message}");
+                Console.WriteLine($"[SaviSchedular v2] RegisterJob ERROR (Instance {instanceId}): {ex.Message}");
             }
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // REMOVE — Job ko Hangfire se remove karo
+        // REMOVE — Remove a job from Hangfire
         // ═════════════════════════════════════════════════════════════════════
-        public static void RemoveJob(long schoolId, string jobTypeCode)
+        public static void RemoveJob(long instanceId)
         {
-            string jobId = GetJobId(schoolId, jobTypeCode);
+            string jobId = GetJobId(instanceId);
             RecurringJob.RemoveIfExists(jobId);
-            Console.WriteLine($"[SaviSchedular] ✗ Removed: School {schoolId} | {jobTypeCode}");
+            Console.WriteLine($"[SaviSchedular v2] ✗ Removed: InstanceId {instanceId}");
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // EXECUTE — Main job executor (Hangfire yahi call karta hai)
+        // EXECUTE — Main job executor (called by Hangfire)
         // ═════════════════════════════════════════════════════════════════════
-        public static async Task ExecuteJobAsync(long schoolId, string jobTypeCode, bool isManual)
+        public static async Task ExecuteJobAsync(long instanceId, bool isManual)
         {
             string triggerType = isManual ? "MANUAL" : "SCHEDULED";
             long   logId       = 0;
-            string schoolName  = $"School-{schoolId}";
+
+            SchedulerJobInstanceModel inst = null;
 
             try
             {
-                // ── Step 1: Job instance aur job type info load karo ──────────
-                SchedulerJobInstanceModel inst  = null;
-                string defaultApiPath           = null;
+                // ── Step 1: Load full instance with joined data ───────────────
+                inst = LoadInstance(instanceId);
 
-                using (var conn = new SqlConnection(SchedConn))
-                {
-                    conn.Open();
-                    inst = conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(@"
-                        SELECT InstanceId, SchoolId, JobTypeCode,
-                               ScheduledHour, ScheduledMinute, TimeZone, IsActive,
-                               RunOnHolidays, MisfireThresholdMinutes
-                        FROM   SchedulerJobInstances
-                        WHERE  SchoolId = @SchoolId AND JobTypeCode = @JobTypeCode",
-                        new { SchoolId = schoolId, JobTypeCode = jobTypeCode });
-
-                    defaultApiPath = conn.ExecuteScalar<string>(@"
-                        SELECT DefaultApiPath FROM SchedulerJobTypes
-                        WHERE JobTypeCode = @JobTypeCode",
-                        new { JobTypeCode = jobTypeCode });
-                }
-
-                // ── Step 2: Execution log start karo ─────────────────────────
-                logId = LoggingService.StartExecutionLog(schoolId, schoolName, jobTypeCode, triggerType);
-
-                // ── Step 3: Validate ──────────────────────────────────────────
                 if (inst == null)
                 {
-                    Console.WriteLine($"[SaviSchedular] School {schoolId} | {jobTypeCode}: Instance not found. Skipping.");
-                    LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "NO_INSTANCE");
+                    Console.WriteLine($"[SaviSchedular v2] Instance {instanceId} not found. Aborting.");
                     return;
                 }
 
+                // ── Step 2: Start log ─────────────────────────────────────────
+                logId = LoggingService.StartExecutionLog(inst);
+
+                // ── Step 3: Validate active ───────────────────────────────────
                 if (!inst.IsActive)
                 {
-                    Console.WriteLine($"[SaviSchedular] School {schoolId} | {jobTypeCode}: Inactive. Skipping.");
                     LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "INACTIVE");
                     return;
                 }
 
-                // ── Step 4: Misfire check (only for scheduled runs) ───────────
+                // ── Step 4: Misfire check (scheduled runs only) ───────────────
                 if (!isManual)
                 {
                     var tz       = SafeGetTimezone(inst.TimeZone);
@@ -150,108 +131,92 @@ namespace SaviSchedular.Services
 
                     if (gapMin > inst.MisfireThresholdMinutes)
                     {
-                        Console.WriteLine(
-                            $"[SaviSchedular] MISFIRE SKIP: School {schoolId} | {jobTypeCode}. " +
-                            $"Scheduled {inst.ScheduledHour:D2}:{inst.ScheduledMinute:D2}, " +
-                            $"Now {nowLocal:HH:mm}, Gap {gapMin:F1}m > {inst.MisfireThresholdMinutes}m");
+                        Console.WriteLine($"[SaviSchedular v2] MISFIRE SKIP: Instance {instanceId}. Gap {gapMin:F1}m.");
                         LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "MISFIRE");
                         return;
                     }
-
-                    // ── Step 5: Holiday check ─────────────────────────────────
-                    if (!inst.RunOnHolidays && IsHolidayCheckEnabled())
-                    {
-                        bool isHoliday = CheckHoliday(schoolId, nowLocal.Date);
-                        if (isHoliday)
-                        {
-                            Console.WriteLine(
-                                $"[SaviSchedular] HOLIDAY SKIP: School {schoolId} | {jobTypeCode} on {nowLocal:yyyy-MM-dd}");
-                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "HOLIDAY");
-                            TrySendHolidayEmail(schoolId, schoolName, nowLocal.Date);
-                            return;
-                        }
-                    }
                 }
 
-                // ── Step 6: API config load karo ─────────────────────────────
-                string baseUrl    = null;
-                string apiPath    = null;
-                string httpMethod = "POST";
-                int    timeout    = 15;
+                // ── Step 5: Build final URL ───────────────────────────────────
+                string baseUrl  = inst.CustomBaseUrl ?? inst.BaseUrl;
+                string apiPath  = inst.CustomApiPath ?? inst.DefaultApiPath ?? string.Empty;
+                string fullUrl  = $"{baseUrl.TrimEnd('/')}/{apiPath.TrimStart('/')}";
 
-                using (var conn = new SqlConnection(SchedConn))
-                {
-                    conn.Open();
-                    var cfg = conn.QueryFirstOrDefault<SchoolApiConfigModel>(@"
-                        SELECT BaseUrl, ApiPath, HttpMethod, TimeoutMinutes
-                        FROM   SchoolApiConfigs
-                        WHERE  SchoolId = @SchoolId AND JobTypeCode = @JobTypeCode AND IsActive = 1",
-                        new { SchoolId = schoolId, JobTypeCode = jobTypeCode });
+                // ── Step 6: Build payload ─────────────────────────────────────
+                // Merge PayloadJson + ExternalId auto-injection
+                string payloadJson = BuildPayload(inst);
 
-                    if (cfg != null)
-                    {
-                        baseUrl    = cfg.BaseUrl;
-                        apiPath    = cfg.ApiPath ?? defaultApiPath;
-                        httpMethod = cfg.HttpMethod ?? "POST";
-                        timeout    = cfg.TimeoutMinutes > 0 ? cfg.TimeoutMinutes : 15;
-                    }
-                }
+                // ── Step 7: Resolve auth token ────────────────────────────────
+                string token      = inst.CustomApiToken ?? inst.ApiToken;
+                string tokenType  = inst.TokenType      ?? "Bearer";
+                string headerName = inst.TokenHeaderName ?? "Authorization";
 
-                // Fallback: Global config → default API path from job type
-                if (string.IsNullOrWhiteSpace(baseUrl))
-                    baseUrl = GlobalConfigService.Get("DefaultBaseUrl", "http://localhost:44548/");
-                if (string.IsNullOrWhiteSpace(apiPath))
-                    apiPath = defaultApiPath ?? string.Empty;
-
-                string fullUrl = $"{baseUrl.TrimEnd('/')}/{(apiPath ?? "").TrimStart('/')}";
-                if (fullUrl.IndexOf("targetSchoolId=", StringComparison.OrdinalIgnoreCase) < 0)
-                {
-                    string sep = fullUrl.Contains("?") ? "&" : "?";
-                    fullUrl += $"{sep}targetSchoolId={schoolId}";
-                }
-
-                // ── Step 7: API call karo ─────────────────────────────────────
+                // ── Step 8: Make HTTP call ────────────────────────────────────
                 Console.WriteLine(
-                    $"[SaviSchedular] → Executing [{jobTypeCode}] School {schoolId} ({schoolName}) | {fullUrl}");
+                    $"[SaviSchedular v2] → [{inst.ProductCode}] {inst.ClientName} ({inst.ExternalId}) | {inst.JobTypeCode} | {fullUrl}");
 
                 using (var client = new HttpClient())
                 {
-                    client.Timeout = TimeSpan.FromMinutes(timeout);
+                    client.Timeout = TimeSpan.FromMinutes(15);
 
-                    HttpResponseMessage response =
-                        httpMethod.ToUpperInvariant() == "GET"
-                            ? await client.GetAsync(fullUrl)
-                            : await client.PostAsync(fullUrl, null);
+                    // Attach auth token
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        if (tokenType == "Bearer")
+                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        else if (tokenType == "Basic")
+                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
+                                Convert.ToBase64String(Encoding.UTF8.GetBytes(token)));
+                        else
+                            client.DefaultRequestHeaders.Add(headerName, token);
+                    }
+
+                    HttpResponseMessage response;
+                    string httpMethod = inst.HttpMethod?.ToUpperInvariant() ?? "POST";
+
+                    if (httpMethod == "GET")
+                    {
+                        // For GET: append ExternalId as query param if not already present
+                        if (!fullUrl.Contains("externalId=") && !fullUrl.Contains("targetSchoolId="))
+                        {
+                            string sep = fullUrl.Contains("?") ? "&" : "?";
+                            fullUrl += $"{sep}targetId={Uri.EscapeDataString(inst.ExternalId ?? "")}";
+                        }
+                        response = await client.GetAsync(fullUrl);
+                    }
+                    else
+                    {
+                        var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+                        response = await client.PostAsync(fullUrl, content);
+                    }
 
                     string body = await response.Content.ReadAsStringAsync();
 
                     if (response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine(
-                            $"[SaviSchedular] ✓ SUCCESS: School {schoolId} | {jobTypeCode} | HTTP {(int)response.StatusCode}");
+                        Console.WriteLine($"[SaviSchedular v2] ✓ SUCCESS: Instance {instanceId} | HTTP {(int)response.StatusCode}");
                         LoggingService.CompleteExecutionLog(logId, "SUCCESS", fullUrl,
-                            (int)response.StatusCode, body);
+                            (int)response.StatusCode, body, payloadSent: payloadJson);
                     }
                     else
                     {
                         string err = $"HTTP {(int)response.StatusCode}: {body}";
-                        Console.WriteLine($"[SaviSchedular] ✗ FAILED: School {schoolId} | {jobTypeCode} | {err}");
+                        Console.WriteLine($"[SaviSchedular v2] ✗ FAILED: Instance {instanceId} | {err}");
                         LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl,
-                            (int)response.StatusCode, body, err);
-                        TrySendFailureEmail(schoolId, schoolName, jobTypeCode, fullUrl, err);
+                            (int)response.StatusCode, body, err, payloadSent: payloadJson);
+                        TrySendFailureEmail(inst, fullUrl, err);
                         throw new Exception($"API call failed — {err}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SaviSchedular] ✗ EXCEPTION: School {schoolId} | {jobTypeCode} | {ex.Message}");
+                Console.WriteLine($"[SaviSchedular v2] ✗ EXCEPTION: Instance {instanceId} | {ex.Message}");
                 if (logId > 0)
                     LoggingService.CompleteExecutionLog(logId, "FAILED", errorMessage: ex.Message);
-                // Send failure email only if not already sent inside the try block
-                if (!ex.Message.StartsWith("API call failed —"))
-                    TrySendFailureEmail(schoolId, schoolName, jobTypeCode, null, ex.Message);
-                throw; // Hangfire retry ke liye rethrow
+                if (inst != null && !ex.Message.StartsWith("API call failed —"))
+                    TrySendFailureEmail(inst, null, ex.Message);
+                throw; // Hangfire retry
             }
         }
 
@@ -259,8 +224,50 @@ namespace SaviSchedular.Services
         // HELPERS
         // ─────────────────────────────────────────────────────────────────────
 
-        public static string GetJobId(long schoolId, string jobTypeCode)
-            => $"school-{schoolId}-{jobTypeCode?.ToLower()}";
+        public static string GetJobId(long instanceId) => $"savi-instance-{instanceId}";
+
+        private static SchedulerJobInstanceModel LoadInstance(long instanceId)
+        {
+            using (var conn = new SqlConnection(SchedConn))
+            {
+                conn.Open();
+                return conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(@"
+                    SELECT
+                        ji.*,
+                        pc.ClientName, pc.ExternalId, pc.CustomBaseUrl,
+                        p.ProductName, p.ProductCode, p.BaseUrl, p.ApiToken, p.TokenType, p.TokenHeaderName,
+                        jt.JobTypeCode, jt.JobTypeName, jt.DefaultApiPath, jt.HttpMethod
+                    FROM SchedulerJobInstances ji
+                    JOIN ProductClients pc  ON pc.ClientId  = ji.ClientId
+                    JOIN Products p         ON p.ProductId  = ji.ProductId
+                    JOIN ProductJobTypes jt ON jt.JobTypeId = ji.JobTypeId
+                    WHERE ji.InstanceId = @InstanceId",
+                    new { InstanceId = instanceId });
+            }
+        }
+
+        private static string BuildPayload(SchedulerJobInstanceModel inst)
+        {
+            try
+            {
+                // Start from instance PayloadJson or empty object
+                var dict = string.IsNullOrWhiteSpace(inst.PayloadJson)
+                    ? new System.Collections.Generic.Dictionary<string, object>()
+                    : JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, object>>(inst.PayloadJson)
+                      ?? new System.Collections.Generic.Dictionary<string, object>();
+
+                // Auto-inject targetId / ExternalId if not already present
+                if (!dict.ContainsKey("targetId"))      dict["targetId"]      = inst.ExternalId;
+                if (!dict.ContainsKey("externalId"))    dict["externalId"]    = inst.ExternalId;
+                if (!dict.ContainsKey("productCode"))   dict["productCode"]   = inst.ProductCode;
+
+                return JsonConvert.SerializeObject(dict);
+            }
+            catch
+            {
+                return inst.PayloadJson ?? "{}";
+            }
+        }
 
         private static TimeZoneInfo SafeGetTimezone(string tzName)
         {
@@ -268,86 +275,15 @@ namespace SaviSchedular.Services
             catch { return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
         }
 
-        private static bool IsHolidayCheckEnabled()
-        {
-            string val = GlobalConfigService.Get("HolidayCheckEnabled", "true");
-            return val?.ToLower() == "true";
-        }
-
-        private static bool CheckHoliday(long schoolId, DateTime date)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(ProdConn)) return false;
-                using (var conn = new SqlConnection(ProdConn))
-                {
-                    conn.Open();
-                    return conn.ExecuteScalar<bool>(@"
-                        SELECT CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END
-                        FROM   SchoolCalendar
-                        WHERE  schoolId = @SchoolId AND delFlg = 0 AND holiday = 1
-                          AND (
-                            CAST(calendarDate AS DATE) = @Date
-                            OR (@Date BETWEEN CAST(calendarDate AS DATE)
-                                         AND CAST(COALESCE(calendarDateTo, calendarDate) AS DATE))
-                          )",
-                        new { SchoolId = schoolId, Date = date });
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[SaviSchedular] Holiday check error School {schoolId}: {ex.Message}. Proceeding.");
-                return false;
-            }
-        }
-
-        private static void TrySendHolidayEmail(long schoolId, string schoolName, DateTime date)
+        // ─────────────────────────────────────────────────────────────────────
+        // FAILURE EMAIL
+        // ─────────────────────────────────────────────────────────────────────
+        private static void TrySendFailureEmail(SchedulerJobInstanceModel inst, string apiUrl, string errorMessage)
         {
             try
             {
                 string host     = GlobalConfigService.Get("SMTPHost",     "email-smtp.ap-south-1.amazonaws.com");
                 int    port     = int.TryParse(GlobalConfigService.Get("SMTPPort", "587"), out int p) ? p : 587;
-                string sender   = GlobalConfigService.Get("SMTPSender",   "info@savischools.com");
-                string username = GlobalConfigService.Get("SMTPUsername", "");
-                string password = GlobalConfigService.Get("SMTPPassword", "");
-                string toEmail  = GlobalConfigService.Get("NotificationEmail", "admin@savischools.com");
-
-                using (var mail = new System.Net.Mail.MailMessage())
-                {
-                    mail.From    = new System.Net.Mail.MailAddress(sender, "SaviSchedular");
-                    mail.To.Add(toEmail);
-                    mail.Subject = $"[SaviSchedular] Holiday Alert: {schoolName} (ID: {schoolId})";
-                    mail.Body    =
-                        $"Dear Admin,\n\n" +
-                        $"Today ({date:yyyy-MM-dd}) is a holiday for {schoolName} (School ID: {schoolId}).\n" +
-                        $"The scheduled job was automatically skipped.\n\n" +
-                        $"Regards,\nSaviSchedular";
-
-                    using (var smtp = new System.Net.Mail.SmtpClient(host, port))
-                    {
-                        smtp.Credentials = new System.Net.NetworkCredential(username, password);
-                        smtp.EnableSsl   = true;
-                        smtp.Send(mail);
-                    }
-                }
-                Console.WriteLine($"[SaviSchedular] Holiday email sent for School {schoolId}.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[SaviSchedular] Holiday email error: {ex.Message}");
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // FAILURE EMAIL — Job fail hone par admin ko alert bhejo
-        // ─────────────────────────────────────────────────────────────────────
-        private static void TrySendFailureEmail(long schoolId, string schoolName, string jobTypeCode,
-            string apiUrl, string errorMessage)
-        {
-            try
-            {
-                string host     = GlobalConfigService.Get("SMTPHost",     "email-smtp.ap-south-1.amazonaws.com");
-                int    port     = int.TryParse(GlobalConfigService.Get("SMTPPort", "587"), out int p2) ? p2 : 587;
                 string sender   = GlobalConfigService.Get("SMTPSender",   "info@savischools.com");
                 string username = GlobalConfigService.Get("SMTPUsername", "");
                 string password = GlobalConfigService.Get("SMTPPassword", "");
@@ -358,34 +294,30 @@ namespace SaviSchedular.Services
                 {
                     mail.From       = new System.Net.Mail.MailAddress(sender, "SaviSchedular");
                     mail.To.Add(toEmail);
-                    mail.Subject    = $"[SaviSchedular] ⚠ Job FAILED: {schoolName} (ID: {schoolId}) | {jobTypeCode}";
+                    mail.Subject    = $"[SaviSchedular] ⚠ FAILED: [{inst?.ProductCode}] {inst?.ClientName} ({inst?.ExternalId}) | {inst?.JobTypeCode}";
                     mail.IsBodyHtml = true;
-                    mail.Body       = $@"
-<html>
-<body style='font-family:Segoe UI,Arial,sans-serif; color:#222; background:#f4f4f4; padding:20px;'>
-  <div style='max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.1);'>
-    <div style='background:#c0392b; padding:20px 30px;'>
-      <h2 style='color:#fff; margin:0;'>⚠ Scheduler Job Failed</h2>
+                    mail.Body = $@"
+<html><body style='font-family:Segoe UI,Arial,sans-serif;color:#222;background:#f4f4f4;padding:20px;'>
+  <div style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);'>
+    <div style='background:#c0392b;padding:20px 30px;'>
+      <h2 style='color:#fff;margin:0;'>⚠ Scheduler Job Failed</h2>
     </div>
     <div style='padding:24px 30px;'>
-      <p style='margin-top:0;'>Dear Admin,</p>
-      <p>The following scheduled job has <strong style='color:#c0392b;'>FAILED</strong> and requires your attention.</p>
-      <table style='width:100%; border-collapse:collapse; margin:16px 0;'>
-        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; width:160px; border:1px solid #e0e0e0;'>School Name</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{schoolName}</td></tr>
-        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>School ID</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{schoolId}</td></tr>
-        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>Job Type</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{jobTypeCode}</td></tr>
-        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>Failed At</td><td style='padding:8px 12px; border:1px solid #e0e0e0;'>{failedAt}</td></tr>
-        <tr><td style='padding:8px 12px; background:#f9f9f9; font-weight:600; border:1px solid #e0e0e0;'>API URL</td><td style='padding:8px 12px; border:1px solid #e0e0e0; word-break:break-all;'>{(string.IsNullOrEmpty(apiUrl) ? "N/A" : apiUrl)}</td></tr>
-        <tr><td style='padding:8px 12px; background:#fff0f0; font-weight:600; border:1px solid #e0e0e0; color:#c0392b;'>Error</td><td style='padding:8px 12px; background:#fff0f0; border:1px solid #e0e0e0; color:#c0392b;'>{System.Security.SecurityElement.Escape(errorMessage ?? "Unknown error")}</td></tr>
+      <table style='width:100%;border-collapse:collapse;margin:16px 0;'>
+        <tr><td style='padding:8px 12px;background:#f9f9f9;font-weight:600;width:140px;border:1px solid #e0e0e0;'>Product</td><td style='padding:8px 12px;border:1px solid #e0e0e0;'>{inst?.ProductName} ({inst?.ProductCode})</td></tr>
+        <tr><td style='padding:8px 12px;background:#f9f9f9;font-weight:600;border:1px solid #e0e0e0;'>Client</td><td style='padding:8px 12px;border:1px solid #e0e0e0;'>{inst?.ClientName}</td></tr>
+        <tr><td style='padding:8px 12px;background:#f9f9f9;font-weight:600;border:1px solid #e0e0e0;'>External ID</td><td style='padding:8px 12px;border:1px solid #e0e0e0;'>{inst?.ExternalId}</td></tr>
+        <tr><td style='padding:8px 12px;background:#f9f9f9;font-weight:600;border:1px solid #e0e0e0;'>Job Type</td><td style='padding:8px 12px;border:1px solid #e0e0e0;'>{inst?.JobTypeCode}</td></tr>
+        <tr><td style='padding:8px 12px;background:#f9f9f9;font-weight:600;border:1px solid #e0e0e0;'>Failed At</td><td style='padding:8px 12px;border:1px solid #e0e0e0;'>{failedAt}</td></tr>
+        <tr><td style='padding:8px 12px;background:#f9f9f9;font-weight:600;border:1px solid #e0e0e0;'>API URL</td><td style='padding:8px 12px;border:1px solid #e0e0e0;word-break:break-all;'>{(string.IsNullOrEmpty(apiUrl) ? "N/A" : apiUrl)}</td></tr>
+        <tr><td style='padding:8px 12px;background:#fff0f0;font-weight:600;border:1px solid #e0e0e0;color:#c0392b;'>Error</td><td style='padding:8px 12px;background:#fff0f0;border:1px solid #e0e0e0;color:#c0392b;'>{System.Security.SecurityElement.Escape(errorMessage ?? "Unknown error")}</td></tr>
       </table>
-      <p>Please check the <a href='#' style='color:#2980b9;'>SaviSchedular Admin Dashboard</a> for full logs.</p>
     </div>
-    <div style='background:#f4f4f4; padding:12px 30px; text-align:center; font-size:12px; color:#888;'>
-      This is an automated alert from SaviSchedular. Do not reply to this email.
+    <div style='background:#f4f4f4;padding:12px 30px;text-align:center;font-size:12px;color:#888;'>
+      Automated alert from SaviSchedular v2.0. Do not reply.
     </div>
   </div>
-</body>
-</html>";
+</body></html>";
 
                     using (var smtp = new System.Net.Mail.SmtpClient(host, port))
                     {
@@ -394,11 +326,11 @@ namespace SaviSchedular.Services
                         smtp.Send(mail);
                     }
                 }
-                Console.WriteLine($"[SaviSchedular] Failure email sent for School {schoolId} | {jobTypeCode}.");
+                Console.WriteLine($"[SaviSchedular v2] Failure email sent.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SaviSchedular] Failure email error: {ex.Message}");
+                Console.WriteLine($"[SaviSchedular v2] Failure email error: {ex.Message}");
             }
         }
     }
