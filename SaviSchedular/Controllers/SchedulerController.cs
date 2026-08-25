@@ -257,6 +257,7 @@ namespace SaviSchedular.Controllers
                             (SELECT COUNT(1) FROM SchedulerExecutionLogs WHERE Status='RUNNING') AS RunningNow");
 
                     // Build filter
+                    int offset = (page - 1) * pageSize;
                     string where = "WHERE 1=1";
                     var p = new DynamicParameters();
                     p.Add("Offset", offset);
