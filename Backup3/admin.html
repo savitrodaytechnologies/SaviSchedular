@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaviSchedular v2.0 — Admin Console</title>
+<meta name="description" content="SaviSchedular v2.0 — Universal Multi-Product Scheduler Admin Console">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f1f5f9; --sidebar:#0f172a; --sidebar-w:260px; --header-h:64px;
+  --card:#ffffff; --border:#e2e8f0; --radius:12px; --radius-sm:8px;
+  --accent:#6366f1; --accent2:#8b5cf6; --accent-glow:rgba(99,102,241,0.15);
+  --success:#059669; --error:#dc2626; --warning:#d97706; --running:#0891b2; --skipped:#64748b;
+  --text:#1e293b; --text-muted:#64748b; --input-bg:#f8fafc;
+  --shadow:0 1px 8px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 20px rgba(0,0,0,0.12); --transition:all 0.2s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overflow:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+.layout{display:flex;height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;background:var(--sidebar);
+  display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:100;overflow-y:auto}
+.sidebar-brand{padding:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;align-items:center;gap:12px}
+.brand-icon{width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand-text h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:0.3px}
+.brand-text p{font-size:11px;color:rgba(255,255,255,0.65)}
+.sidebar-section{padding:16px 12px 4px;font-size:10px;font-weight:700;color:#475569;
+  letter-spacing:1px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;margin:1px 8px;
+  border-radius:8px;cursor:pointer;transition:var(--transition);color:#94a3b8;font-size:13px;font-weight:500}
+.nav-item:hover{background:rgba(255,255,255,0.08);color:#e2e8f0}
+.nav-item.active{background:rgba(99,102,241,0.25);color:#a5b4fc;border-left:3px solid #6366f1}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid #1e293b;
+  font-size:11px;color:#475569;text-align:center}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.header{height:var(--header-h);background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.header-left h2{font-size:18px;font-weight:700;color:var(--text)}
+.header-left p{font-size:12px;color:var(--text-muted)}
+.header-right{display:flex;align-items:center;gap:12px}
+.btn-refresh{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;
+  border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text-muted);
+  transition:var(--transition);font-family:inherit}
+.btn-refresh:hover{background:var(--bg);border-color:var(--accent);color:var(--accent)}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:700;color:var(--text)}
+.card-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);
+  padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.stat-value{font-size:28px;font-weight:800;color:var(--text);line-height:1}
+.stat-card.success .stat-value{color:var(--success)}
+.stat-card.error .stat-value{color:var(--error)}
+.stat-card.warning .stat-value{color:var(--warning)}
+.stat-card.running .stat-value{color:var(--running)}
+.stat-card.accent .stat-value{color:var(--accent)}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar-spacer{flex:1}
+.search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+  border-radius:8px;padding:0 12px;min-width:220px}
+.search-box input{border:none;outline:none;background:transparent;font-family:inherit;
+  font-size:13px;padding:8px 0;flex:1}
+.search-box .icon{color:var(--text-muted);font-size:14px}
+select.filter-select{border:1px solid var(--border);border-radius:8px;padding:8px 12px;
+  font-family:inherit;font-size:13px;background:#fff;cursor:pointer;outline:none;color:var(--text)}
+select.filter-select:focus{border-color:var(--accent)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);border:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#4f46e5;transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,0.4)}
+.btn-danger{background:#fee2e2;color:var(--error);border:1px solid #fecaca}
+.btn-danger:hover{background:var(--error);color:#fff}
+.btn-success{background:#d1fae5;color:var(--success);border:1px solid #a7f3d0}
+.btn-success:hover{background:var(--success);color:#fff}
+.btn-secondary{background:#f1f5f9;color:var(--text-muted);border:1px solid var(--border)}
+.btn-secondary:hover{background:#e2e8f0;color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:6px;border-radius:6px;background:#f1f5f9;border:1px solid var(--border);
+  cursor:pointer;font-size:14px;transition:var(--transition)}
+.btn-icon:hover{background:#e2e8f0}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#f8fafc;font-weight:600;padding:10px 14px;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text-muted)}
+tbody tr{border-bottom:1px solid #f1f5f9;transition:var(--transition)}
+tbody tr:hover{background:#f8faff}
+tbody td{padding:10px 14px;vertical-align:middle}
+tbody tr:last-child{border-bottom:none}
+.actions-cell{display:flex;gap:6px;align-items:center}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;
+  font-size:11px;font-weight:600;white-space:nowrap}
+.badge-success{background:#d1fae5;color:#065f46}
+.badge-error{background:#fee2e2;color:#991b1b}
+.badge-warning{background:#fef3c7;color:#92400e}
+.badge-running{background:#cffafe;color:#164e63}
+.badge-skipped{background:#f1f5f9;color:#475569}
+.badge-active{background:#d1fae5;color:#065f46}
+.badge-inactive{background:#fee2e2;color:#991b1b}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;
+  overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);animation:modalIn 0.25s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:none}}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);
+  padding:4px;border-radius:6px;line-height:1}
+.modal-close:hover{background:#f1f5f9;color:var(--text)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;
+  position:sticky;bottom:0;background:#fff;z-index:1}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input[type=text],input[type=number],input[type=password],select,textarea{
+  width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:13px;background:var(--input-bg);color:var(--text);
+  transition:var(--transition);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-glow)}
+textarea{resize:vertical;min-height:80px}
+.toggle-wrap{display:flex;align-items:center;gap:10px}
+.toggle{position:relative;width:44px;height:24px;display:inline-block}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:var(--transition)}
+.toggle-slider::before{content:"";position:absolute;width:18px;height:18px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;transition:var(--transition)}
+.toggle input:checked + .toggle-slider{background:var(--success)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px)}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:16px}
+.pagination button{padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+  background:#fff;font-family:inherit;font-size:12px;cursor:pointer;transition:var(--transition);color:var(--text-muted)}
+.pagination button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.pagination button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pagination button:disabled{opacity:0.4;cursor:not-allowed}
+.pagination-info{font-size:12px;color:var(--text-muted);margin-right:8px}
+
+/* ── TOAST ── */
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;
+  background:#fff;box-shadow:var(--shadow-md);min-width:260px;max-width:380px;
+  border-left:4px solid var(--accent);animation:slideIn 0.3s ease;font-size:13px}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--error)}
+.toast.warning{border-left-color:var(--warning)}
+@keyframes slideIn{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:none}}
+@keyframes slideOut{to{opacity:0;transform:translateX(100%)}}
+
+/* ── KEY DISPLAY ── */
+.api-key-box{background:#0f172a;border-radius:8px;padding:14px;font-family:monospace;
+  font-size:13px;color:#a5f3fc;word-break:break-all;border:1px solid #1e293b;margin:10px 0}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+
+/* ── LOADING ── */
+.loading-row td{text-align:center;padding:30px;color:var(--text-muted)}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SECTION PAGES ── */
+.page{display:none}
+.page.active{display:block}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">⚡</div>
+    <div class="brand-text">
+      <h1>SaviSchedular</h1>
+      <p>v2.0 Admin Console</p>
+    </div>
+  </div>
+
+  <div class="sidebar-section">Overview</div>
+  <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+    <span class="icon">📊</span> Dashboard
+  </div>
+
+  <div class="sidebar-section">Management</div>
+  <div class="nav-item" onclick="showPage('products')" id="nav-products">
+    <span class="icon">📦</span> Products
+  </div>
+  <div class="nav-item" onclick="showPage('jobtypes')" id="nav-jobtypes">
+    <span class="icon">⚙️</span> Job Types
+  </div>
+  <div class="nav-item" onclick="showPage('clients')" id="nav-clients">
+    <span class="icon">👥</span> Clients
+  </div>
+  <div class="nav-item" onclick="showPage('schedules')" id="nav-schedules">
+    <span class="icon">⏰</span> Schedules
+  </div>
+
+  <div class="sidebar-section">Logs & Security</div>
+  <div class="nav-item" onclick="showPage('logs')" id="nav-logs">
+    <span class="icon">📜</span> Execution Logs
+  </div>
+  <div class="nav-item" onclick="showPage('apiclients')" id="nav-apiclients">
+    <span class="icon">🔑</span> API Keys
+  </div>
+
+  <div class="sidebar-section">Config</div>
+  <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+    <span class="icon">🛠️</span> Global Settings
+  </div>
+  <div class="nav-item" onclick="window.open('/hangfire','_blank')">
+    <span class="icon">🔧</span> Hangfire Jobs
+  </div>
+
+  <div class="sidebar-footer">SaviSchedular v2.0 &copy; 2026</div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="header">
+    <div class="header-left">
+      <h2 id="page-title">Dashboard</h2>
+      <p id="page-subtitle">Overview of all scheduled jobs and activity</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-refresh" onclick="refreshCurrentPage()">🔄 Refresh</button>
+      <a href="/hangfire" target="_blank" class="btn btn-secondary btn-sm">Hangfire ↗</a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card"><div class="stat-label">Products</div><div class="stat-value" id="s-products">—</div></div>
+        <div class="stat-card accent"><div class="stat-label">Total Clients</div><div class="stat-value" id="s-clients">—</div></div>
+        <div class="stat-card"><div class="stat-label">Active Schedules</div><div class="stat-value" id="s-schedules">—</div></div>
+        <div class="stat-card success"><div class="stat-label">Success Today</div><div class="stat-value" id="s-success">—</div></div>
+        <div class="stat-card error"><div class="stat-label">Failed Today</div><div class="stat-value" id="s-failed">—</div></div>
+        <div class="stat-card running"><div class="stat-label">Running Now</div><div class="stat-value" id="s-running">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Recent Activity</div><div class="card-subtitle">Latest job execution logs</div></div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="dash-q" placeholder="Search client, job..." onkeydown="if(event.key==='Enter')loadDashboard(1)">
+          </div>
+          <select class="filter-select" id="dash-status" onchange="loadDashboard(1)">
+            <option value="">All Status</option>
+            <option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
+          </select>
+          <select class="filter-select" id="dash-product" onchange="loadDashboard(1)">
+            <option value="">All Products</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('dash-q').value='';document.getElementById('dash-status').value='';document.getElementById('dash-product').value='';loadDashboard(1)">Reset</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Product</th><th>Client</th><th>ID</th><th>Job Type</th>
+              <th>Trigger</th><th>Started At</th><th>Duration</th><th>Status</th><th>Error</th>
+            </tr></thead>
+            <tbody id="dash-logs-body"><tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="dash-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ══ PRODUCTS ══ -->
+    <div class="page" id="page-products">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Products</div><div class="card-subtitle">Register your products (SaviSchools, 10xViral...)</div></div>
+          <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Code</th><th>Name</th><th>Base URL</th><th>Token Type</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="products-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ JOB TYPES ══ -->
+    <div class="page" id="page-jobtypes">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Job Types</div><div class="card-subtitle">Define job types per product</div></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="filter-select" id="jt-product-filter" onchange="loadJobTypes()">
+              <option value="">All Products</option>
+            </select>
+            <button class="btn btn-primary" onclick="openJobTypeModal()">+ Add Job Type</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Product</th><th>Code</th><th>Name</th><th>API Path</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="jobtypes-body"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CLIENTS ══ -->
+    <div class="page" id="page-clients">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Clients</div><div class="card-subtitle">Schools / clients registered under each product</div></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="filter-select" id="cl-product-filter" onchange="loadClients()">
+              <option value="">All Products</option>
+            </select>
+            <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="cl-q" placeholder="Search client, ID..." onkeydown="if(event.key==='Enter')loadClients()">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Product</th><th>Client Name</th><th>External ID</th><th>Custom Base URL</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="clients-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCHEDULES ══ -->
+    <div class="page" id="page-schedules">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Schedules</div><div class="card-subtitle">Job schedule instances for each client</div></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="filter-select" id="sc-product-filter" onchange="loadSchedules()">
+              <option value="">All Products</option>
+            </select>
+            <button class="btn btn-primary" onclick="openScheduleModal()">+ Add Schedule</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Time</th><th>Timezone</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="schedules-body"><tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LOGS ══ -->
+    <div class="page" id="page-logs">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Execution Logs</div><div class="card-subtitle">Full history of all job runs</div></div>
+          <button class="btn btn-danger btn-sm" onclick="purgeLogs()">🗑 Purge Old Logs</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="log-q" placeholder="Search client, job, error..." onkeydown="if(event.key==='Enter')loadLogs(1)">
+          </div>
+          <select class="filter-select" id="log-status" onchange="loadLogs(1)">
+            <option value="">All Status</option>
+            <option>SUCCESS</option><option>FAILED</option><option>SKIPPED</option><option>RUNNING</option>
+          </select>
+          <select class="filter-select" id="log-product" onchange="loadLogs(1)">
+            <option value="">All Products</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('log-q').value='';document.getElementById('log-status').value='';document.getElementById('log-product').value='';loadLogs(1)">Reset</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Trigger</th><th>Started At</th><th>Duration</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="logs-body"><tr class="loading-row"><td colspan="10"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="logs-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ══ API KEYS ══ -->
+    <div class="page" id="page-apiclients">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">API Keys</div><div class="card-subtitle">External projects that can create schedules via API</div></div>
+          <button class="btn btn-primary" onclick="openApiClientModal()">+ New API Key</button>
+        </div>
+        <div class="card" style="background:#fffbeb;border-color:#fde68a;margin-bottom:16px">
+          <b>📡 External API Usage:</b><br>
+          <code style="font-size:12px">POST /api/external/schedule</code> with header <code>X-SaviSchedular-Key: YOUR_KEY</code><br>
+          <small style="color:#92400e">Body: { "productCode": "SAVISCHOOLS", "jobTypeCode": "WHATSAPP_ABSENT", "externalId": "1093", "scheduledHour": 10, "scheduledMinute": 0, "isActive": true }</small>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Client Name</th><th>API Key (masked)</th><th>Allowed Products</th><th>Status</th><th>Last Used</th><th>Actions</th></tr></thead>
+            <tbody id="apiclients-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Global Settings</div><div class="card-subtitle">SMTP, notifications, system settings</div></div>
+        </div>
+        <div id="settings-body">
+          <tr class="loading-row"><td colspan="3"><div class="spinner"></div></td></tr>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ══ TOAST CONTAINER ══ -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Product Modal -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="product-modal-title">Add Product</span>
+      <button class="modal-close" onclick="closeModal('modal-product')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="p-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Product Code *</label>
+          <input type="text" id="p-code" placeholder="SAVISCHOOLS" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="p-name" placeholder="SaviSchools">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Base URL *</label>
+        <input type="text" id="p-url" placeholder="https://abc.savischools.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Token Type</label>
+          <select id="p-token-type">
+            <option value="Bearer">Bearer</option>
+            <option value="ApiKey">ApiKey</option>
+            <option value="Basic">Basic</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Token Header Name</label>
+          <input type="text" id="p-token-header" placeholder="Authorization">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>API Token / Key</label>
+        <input type="password" id="p-token" placeholder="Enter token (leave blank to keep existing)">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="p-desc" placeholder="Optional description">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="p-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Job Type Modal -->
+<div class="modal-overlay" id="modal-jobtype">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="jobtype-modal-title">Add Job Type</span>
+      <button class="modal-close" onclick="closeModal('modal-jobtype')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="jt-id">
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="jt-product"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Job Type Code *</label>
+          <input type="text" id="jt-code" placeholder="WHATSAPP_ABSENT" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Job Type Name *</label>
+          <input type="text" id="jt-name" placeholder="WhatsApp Absent Alert">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Default API Path</label>
+          <input type="text" id="jt-path" placeholder="/api/asapi/run-absent-whatsapp">
+        </div>
+        <div class="form-group">
+          <label>HTTP Method</label>
+          <select id="jt-method"><option value="POST">POST</option><option value="GET">GET</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="jt-desc" placeholder="Optional">
+      </div>
+      <div class="form-group">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="jt-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-jobtype')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJobType()">Save Job Type</button>
+    </div>
+  </div>
+</div>
+
+<!-- Client Modal -->
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="client-modal-title">Add Client</span>
+      <button class="modal-close" onclick="closeModal('modal-client')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cl-id">
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="cl-product"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client Name *</label>
+          <input type="text" id="cl-name" placeholder="School ABC">
+        </div>
+        <div class="form-group">
+          <label>External ID * (SchoolId)</label>
+          <input type="text" id="cl-extid" placeholder="1093">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Custom Base URL (override product URL)</label>
+        <input type="text" id="cl-baseurl" placeholder="Leave blank to use product URL">
+      </div>
+      <div class="form-group">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="cl-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-client')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="modal-overlay" id="modal-schedule">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="schedule-modal-title">Add Schedule</span>
+      <button class="modal-close" onclick="closeModal('modal-schedule')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sc-id">
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="sc-product" onchange="loadClientsForSchedule();loadJobTypesForSchedule()"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client *</label>
+          <select id="sc-client"></select>
+        </div>
+        <div class="form-group">
+          <label>Job Type *</label>
+          <select id="sc-jobtype"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Scheduled Hour (0-23) *</label>
+          <input type="number" id="sc-hour" min="0" max="23" value="10">
+        </div>
+        <div class="form-group">
+          <label>Scheduled Minute (0-59)</label>
+          <input type="number" id="sc-minute" min="0" max="59" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Timezone</label>
+        <select id="sc-tz">
+          <option value="India Standard Time">India Standard Time (IST)</option>
+          <option value="UTC">UTC</option>
+          <option value="US Eastern Standard Time">US Eastern</option>
+          <option value="US Pacific Standard Time">US Pacific</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Payload JSON (optional extra params)</label>
+        <textarea id="sc-payload" placeholder='{"companyId":"1","customParam":"value"}'></textarea>
+        <small style="color:var(--text-muted)">Note: externalId, targetId and productCode are auto-injected.</small>
+      </div>
+      <div class="form-group">
+        <label>Custom API Path (overrides job type default)</label>
+        <input type="text" id="sc-apipath" placeholder="Leave blank to use job type default">
+      </div>
+      <div class="form-group">
+        <label>Custom API Token (overrides product token)</label>
+        <input type="password" id="sc-token" placeholder="Leave blank to use product token">
+      </div>
+      <div class="form-group">
+        <label>Misfire Threshold (minutes)</label>
+        <input type="number" id="sc-misfire" value="15" min="0">
+      </div>
+      <div style="display:flex;gap:20px;margin-top:4px">
+        <div class="form-group">
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="sc-active" checked><span class="toggle-slider"></span></label>
+            <span>Active</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="sc-holidays"><span class="toggle-slider"></span></label>
+            <span>Run on Holidays</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-schedule')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">Save Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- API Client Modal -->
+<div class="modal-overlay" id="modal-apiclient">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="apiclient-modal-title">New API Client</span>
+      <button class="modal-close" onclick="closeModal('modal-apiclient')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ac-id">
+      <div class="form-group">
+        <label>Client Name *</label>
+        <input type="text" id="ac-name" placeholder="SaviSchools Project">
+      </div>
+      <div class="form-group">
+        <label>Allowed Product IDs (comma-separated, blank = all)</label>
+        <input type="text" id="ac-products" placeholder="1,2,3">
+      </div>
+      <div class="form-group">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="ac-active" checked><span class="toggle-slider"></span></label>
+          <span>Active</span>
+        </div>
+      </div>
+      <div id="new-key-display" style="display:none">
+        <div style="background:#d1fae5;border:1px solid #a7f3d0;border-radius:8px;padding:12px;margin-top:12px">
+          <b style="color:#065f46">✅ API Key Generated — Copy it now, it won't be shown again:</b>
+          <div class="api-key-box" id="new-key-value"></div>
+          <button class="btn btn-success btn-sm" onclick="copyKey()">📋 Copy Key</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-apiclient')">Close</button>
+      <button class="btn btn-primary" id="ac-save-btn" onclick="saveApiClient()">Generate API Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Detail Modal -->
+<div class="modal-overlay" id="modal-log">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title">Log Detail</span>
+      <button class="modal-close" onclick="closeModal('modal-log')">✕</button>
+    </div>
+    <div class="modal-body" id="log-detail-body"></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-log')">Close</button></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let products = [];
+let currentPage = 'dashboard';
+let dashPage = 1, logsPage = 1;
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadProducts().then(() => {
+    loadDashboard(1);
+    populateProductDropdowns();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const pageTitles = {
+  dashboard: ['Dashboard', 'Overview of all scheduled jobs and activity'],
+  products:  ['Products', 'Manage product registrations'],
+  jobtypes:  ['Job Types', 'Define job types per product'],
+  clients:   ['Clients', 'Schools / clients registered under products'],
+  schedules: ['Schedules', 'Job schedule instances per client'],
+  logs:      ['Execution Logs', 'Full history of all job runs'],
+  apiclients:['API Keys', 'External project API key management'],
+  settings:  ['Global Settings', 'SMTP, notifications and system settings'],
+};
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`)?.classList.add('active');
+  document.getElementById(`nav-${name}`)?.classList.add('active');
+  const [title, sub] = pageTitles[name] || [name, ''];
+  document.getElementById('page-title').textContent  = title;
+  document.getElementById('page-subtitle').textContent = sub;
+  currentPage = name;
+  if (name === 'dashboard')  loadDashboard(1);
+  if (name === 'products')   loadProductsTable();
+  if (name === 'jobtypes')   loadJobTypes();
+  if (name === 'clients')    loadClients();
+  if (name === 'schedules')  loadSchedules();
+  if (name === 'logs')       loadLogs(1);
+  if (name === 'apiclients') loadApiClients();
+  if (name === 'settings')   loadSettings();
+}
+
+function refreshCurrentPage() { showPage(currentPage); }
+
+// ═══════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════
+async function api(method, url, body) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || data.message || `HTTP ${r.status}`);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'⚠️'}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => { el.style.animation='slideOut 0.3s ease forwards'; setTimeout(()=>el.remove(),300); }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PRODUCTS
+// ═══════════════════════════════════════════════════════════════
+async function loadProducts() {
+  products = await api('GET', '/api/products');
+  return products;
+}
+
+async function loadProductsTable() {
+  try {
+    await loadProducts();
+    const rows = products.map((p,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><b>${p.productCode}</b></td>
+        <td>${p.productName}</td>
+        <td><a href="${p.baseUrl}" target="_blank" style="color:var(--accent)">${p.baseUrl}</a></td>
+        <td><span class="badge badge-skipped">${p.tokenType||'Bearer'}</span></td>
+        <td>${p.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.productId})">✏ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.productId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('products-body').innerHTML = rows || emptyRow(7, 'No products yet');
+    populateProductDropdowns();
+  } catch(e) { document.getElementById('products-body').innerHTML = emptyRow(7, e.message, true); }
+}
+
+function openProductModal(p) {
+  document.getElementById('p-id').value    = p?.productId||0;
+  document.getElementById('p-code').value  = p?.productCode||'';
+  document.getElementById('p-name').value  = p?.productName||'';
+  document.getElementById('p-url').value   = p?.baseUrl||'';
+  document.getElementById('p-token-type').value = p?.tokenType||'Bearer';
+  document.getElementById('p-token-header').value = p?.tokenHeaderName||'Authorization';
+  document.getElementById('p-token').value = '';
+  document.getElementById('p-desc').value  = p?.description||'';
+  document.getElementById('p-active').checked = p ? p.isActive : true;
+  document.getElementById('product-modal-title').textContent = p ? 'Edit Product' : 'Add Product';
+  openModal('modal-product');
+}
+
+async function editProduct(id) {
+  try { const p = await api('GET', `/api/products/${id}`); openProductModal(p); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+async function saveProduct() {
+  const body = {
+    productId: +document.getElementById('p-id').value,
+    productCode: document.getElementById('p-code').value.trim().toUpperCase(),
+    productName: document.getElementById('p-name').value.trim(),
+    baseUrl: document.getElementById('p-url').value.trim(),
+    apiToken: document.getElementById('p-token').value.trim()||'••••••••',
+    tokenType: document.getElementById('p-token-type').value,
+    tokenHeaderName: document.getElementById('p-token-header').value||'Authorization',
+    description: document.getElementById('p-desc').value.trim(),
+    isActive: document.getElementById('p-active').checked,
+  };
+  if (!body.productCode || !body.baseUrl) return toast('ProductCode and BaseUrl are required','error');
+  try {
+    await api('POST', '/api/products/save', body);
+    toast('Product saved!');
+    closeModal('modal-product');
+    loadProductsTable();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  try { await api('DELETE', `/api/products/${id}`); toast('Deleted!'); loadProductsTable(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRODUCT DROPDOWNS (shared across pages)
+// ═══════════════════════════════════════════════════════════════
+function populateProductDropdowns() {
+  const ids = ['jt-product-filter','cl-product-filter','sc-product-filter','log-product','dash-product',
+               'jt-product','cl-product','sc-product'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isFilter = id.includes('filter') || id==='log-product' || id==='dash-product';
+    const opt0 = isFilter ? '<option value="">All Products</option>' : '<option value="">Select Product</option>';
+    el.innerHTML = opt0 + products.map(p => `<option value="${p.productId}">${p.productName}</option>`).join('');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JOB TYPES
+// ═══════════════════════════════════════════════════════════════
+async function loadJobTypes() {
+  const pid = document.getElementById('jt-product-filter')?.value;
+  try {
+    const data = await api('GET', `/api/jobtypes${pid?`?productId=${pid}`:''}`);
+    const rows = data.map((jt,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><span class="badge badge-running">${jt.productName}</span></td>
+        <td><b>${jt.jobTypeCode}</b></td>
+        <td>${jt.jobTypeName}</td>
+        <td><code style="font-size:11px">${jt.defaultApiPath||'—'}</code></td>
+        <td><span class="badge badge-skipped">${jt.httpMethod||'POST'}</span></td>
+        <td>${jt.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editJobType(${jt.jobTypeId},${JSON.stringify(jt).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteJobType(${jt.jobTypeId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('jobtypes-body').innerHTML = rows || emptyRow(8,'No job types');
+  } catch(e) { document.getElementById('jobtypes-body').innerHTML = emptyRow(8,e.message,true); }
+}
+
+function openJobTypeModal(jt) {
+  populateProductDropdowns();
+  document.getElementById('jt-id').value = jt?.jobTypeId||0;
+  document.getElementById('jt-product').value = jt?.productId||'';
+  document.getElementById('jt-code').value = jt?.jobTypeCode||'';
+  document.getElementById('jt-name').value = jt?.jobTypeName||'';
+  document.getElementById('jt-path').value = jt?.defaultApiPath||'';
+  document.getElementById('jt-method').value = jt?.httpMethod||'POST';
+  document.getElementById('jt-desc').value = jt?.description||'';
+  document.getElementById('jt-active').checked = jt ? jt.isActive : true;
+  document.getElementById('jobtype-modal-title').textContent = jt ? 'Edit Job Type' : 'Add Job Type';
+  openModal('modal-jobtype');
+}
+function editJobType(id, jt) { openJobTypeModal(jt); }
+
+async function saveJobType() {
+  const body = {
+    jobTypeId: +document.getElementById('jt-id').value,
+    productId: +document.getElementById('jt-product').value,
+    jobTypeCode: document.getElementById('jt-code').value.trim().toUpperCase(),
+    jobTypeName: document.getElementById('jt-name').value.trim(),
+    defaultApiPath: document.getElementById('jt-path').value.trim(),
+    httpMethod: document.getElementById('jt-method').value,
+    description: document.getElementById('jt-desc').value.trim(),
+    isActive: document.getElementById('jt-active').checked,
+  };
+  if (!body.productId || !body.jobTypeCode) return toast('Product and Code are required','error');
+  try {
+    await api('POST', '/api/jobtypes/save', body);
+    toast('Job Type saved!'); closeModal('modal-jobtype'); loadJobTypes();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteJobType(id) {
+  if (!confirm('Delete this job type?')) return;
+  try { await api('DELETE', `/api/jobtypes/${id}`); toast('Deleted!'); loadJobTypes(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLIENTS
+// ═══════════════════════════════════════════════════════════════
+async function loadClients() {
+  const pid = document.getElementById('cl-product-filter')?.value;
+  const q   = document.getElementById('cl-q')?.value;
+  try {
+    let url = '/api/clients?';
+    if (pid) url += `productId=${pid}&`;
+    if (q)   url += `q=${encodeURIComponent(q)}&`;
+    const data = await api('GET', url);
+    const rows = data.map((c,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><span class="badge badge-running">${c.productName}</span></td>
+        <td><b>${c.clientName}</b></td>
+        <td><code>${c.externalId}</code></td>
+        <td>${c.customBaseUrl||'<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${c.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editClient(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.clientId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('clients-body').innerHTML = rows || emptyRow(7,'No clients');
+  } catch(e) { document.getElementById('clients-body').innerHTML = emptyRow(7,e.message,true); }
+}
+
+function openClientModal(c) {
+  populateProductDropdowns();
+  document.getElementById('cl-id').value = c?.clientId||0;
+  document.getElementById('cl-product').value = c?.productId||'';
+  document.getElementById('cl-name').value = c?.clientName||'';
+  document.getElementById('cl-extid').value = c?.externalId||'';
+  document.getElementById('cl-baseurl').value = c?.customBaseUrl||'';
+  document.getElementById('cl-active').checked = c ? c.isActive : true;
+  document.getElementById('client-modal-title').textContent = c ? 'Edit Client' : 'Add Client';
+  openModal('modal-client');
+}
+function editClient(c) { openClientModal(c); }
+
+async function saveClient() {
+  const body = {
+    clientId: +document.getElementById('cl-id').value,
+    productId: +document.getElementById('cl-product').value,
+    clientName: document.getElementById('cl-name').value.trim(),
+    externalId: document.getElementById('cl-extid').value.trim(),
+    customBaseUrl: document.getElementById('cl-baseurl').value.trim()||null,
+    isActive: document.getElementById('cl-active').checked,
+  };
+  if (!body.productId || !body.externalId) return toast('Product and External ID are required','error');
+  try {
+    await api('POST', '/api/clients/save', body);
+    toast('Client saved!'); closeModal('modal-client'); loadClients();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteClient(id) {
+  if (!confirm('Delete this client?')) return;
+  try { await api('DELETE', `/api/clients/${id}`); toast('Deleted!'); loadClients(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEDULES
+// ═══════════════════════════════════════════════════════════════
+async function loadSchedules() {
+  const pid = document.getElementById('sc-product-filter')?.value;
+  try {
+    const data = await api('GET', `/api/scheduler${pid?`?productId=${pid}`:''}`);
+    const rows = data.map((s,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><span class="badge badge-running">${s.productCode}</span></td>
+        <td><b>${s.clientName}</b></td>
+        <td><code>${s.externalId}</code></td>
+        <td>${s.jobTypeName}</td>
+        <td><b>${String(s.scheduledHour).padStart(2,'0')}:${String(s.scheduledMinute).padStart(2,'0')}</b></td>
+        <td><span class="badge badge-skipped">${s.timeZone?.replace(' Standard Time','')}</span></td>
+        <td>${s.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-success btn-sm" title="Manual Trigger" onclick="triggerSchedule(${s.instanceId})">▶</button>
+          <button class="btn btn-secondary btn-sm" onclick="editSchedule(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${s.instanceId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('schedules-body').innerHTML = rows || emptyRow(9,'No schedules');
+  } catch(e) { document.getElementById('schedules-body').innerHTML = emptyRow(9,e.message,true); }
+}
+
+async function loadClientsForSchedule() {
+  const pid = document.getElementById('sc-product').value;
+  const sel = document.getElementById('sc-client');
+  sel.innerHTML = '<option value="">Loading...</option>';
+  try {
+    const data = await api('GET', `/api/clients?productId=${pid}`);
+    sel.innerHTML = '<option value="">Select Client</option>' + data.map(c => `<option value="${c.clientId}">${c.clientName} (${c.externalId})</option>`).join('');
+  } catch { sel.innerHTML = '<option value="">Error loading</option>'; }
+}
+
+async function loadJobTypesForSchedule() {
+  const pid = document.getElementById('sc-product').value;
+  const sel = document.getElementById('sc-jobtype');
+  sel.innerHTML = '<option value="">Loading...</option>';
+  try {
+    const data = await api('GET', `/api/jobtypes?productId=${pid}`);
+    sel.innerHTML = '<option value="">Select Job Type</option>' + data.map(j => `<option value="${j.jobTypeId}">${j.jobTypeName}</option>`).join('');
+  } catch { sel.innerHTML = '<option value="">Error loading</option>'; }
+}
+
+function openScheduleModal(s) {
+  populateProductDropdowns();
+  document.getElementById('sc-id').value = s?.instanceId||0;
+  document.getElementById('sc-product').value = s?.productId||'';
+  document.getElementById('sc-hour').value = s?.scheduledHour??10;
+  document.getElementById('sc-minute').value = s?.scheduledMinute??0;
+  document.getElementById('sc-tz').value = s?.timeZone||'India Standard Time';
+  document.getElementById('sc-payload').value = s?.payloadJson||'';
+  document.getElementById('sc-apipath').value = s?.customApiPath||'';
+  document.getElementById('sc-token').value = '';
+  document.getElementById('sc-misfire').value = s?.misfireThresholdMinutes||15;
+  document.getElementById('sc-active').checked = s ? s.isActive : true;
+  document.getElementById('sc-holidays').checked = s?.runOnHolidays||false;
+  document.getElementById('schedule-modal-title').textContent = s ? 'Edit Schedule' : 'Add Schedule';
+  if (s?.productId) {
+    document.getElementById('sc-product').value = s.productId;
+    loadClientsForSchedule().then(() => { document.getElementById('sc-client').value = s.clientId||''; });
+    loadJobTypesForSchedule().then(() => { document.getElementById('sc-jobtype').value = s.jobTypeId||''; });
+  }
+  openModal('modal-schedule');
+}
+function editSchedule(s) { openScheduleModal(s); }
+
+async function saveSchedule() {
+  const body = {
+    instanceId: +document.getElementById('sc-id').value,
+    clientId: +document.getElementById('sc-client').value,
+    productId: +document.getElementById('sc-product').value,
+    jobTypeId: +document.getElementById('sc-jobtype').value,
+    scheduledHour: +document.getElementById('sc-hour').value,
+    scheduledMinute: +document.getElementById('sc-minute').value,
+    timeZone: document.getElementById('sc-tz').value,
+    payloadJson: document.getElementById('sc-payload').value.trim()||null,
+    customApiPath: document.getElementById('sc-apipath').value.trim()||null,
+    customApiToken: document.getElementById('sc-token').value.trim()||'••••••••',
+    misfireThresholdMinutes: +document.getElementById('sc-misfire').value||15,
+    isActive: document.getElementById('sc-active').checked,
+    runOnHolidays: document.getElementById('sc-holidays').checked,
+  };
+  if (!body.clientId || !body.jobTypeId) return toast('Client and Job Type are required','error');
+  try {
+    await api('POST', '/api/scheduler/save', body);
+    toast('Schedule saved!'); closeModal('modal-schedule'); loadSchedules();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function triggerSchedule(instanceId) {
+  if (!confirm('Manually trigger this job now?')) return;
+  try {
+    await api('POST', `/api/scheduler/trigger?instanceId=${instanceId}`);
+    toast('Job enqueued!');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteSchedule(id) {
+  if (!confirm('Delete this schedule?')) return;
+  try { await api('DELETE', `/api/scheduler/${id}`); toast('Deleted!'); loadSchedules(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+async function loadDashboard(page) {
+  dashPage = page;
+  const q       = document.getElementById('dash-q')?.value;
+  const status  = document.getElementById('dash-status')?.value;
+  const pid     = document.getElementById('dash-product')?.value;
+  let url = `/api/scheduler/dashboard?page=${page}&pageSize=10`;
+  if (q)      url += `&q=${encodeURIComponent(q)}`;
+  if (status) url += `&status=${status}`;
+  if (pid)    url += `&productId=${pid}`;
+  try {
+    const d = await api('GET', url);
+    // Stats
+    const st = d.stats || d.Stats || {};
+    document.getElementById('s-products').textContent  = st.totalProducts  ?? st.TotalProducts  ?? 0;
+    document.getElementById('s-clients').textContent   = st.totalClients   ?? st.TotalClients   ?? 0;
+    document.getElementById('s-schedules').textContent = st.activeSchedules?? st.ActiveSchedules?? 0;
+    document.getElementById('s-success').textContent   = st.successToday   ?? st.SuccessToday   ?? 0;
+    document.getElementById('s-failed').textContent    = st.failedToday    ?? st.FailedToday    ?? 0;
+    document.getElementById('s-running').textContent   = st.runningNow     ?? st.RunningNow     ?? 0;
+    // Logs
+    const logs = d.recentLogs ?? d.RecentLogs ?? [];
+    const rows = logs.map(l => `
+      <tr>
+        <td><span class="badge badge-running">${l.productName||'—'}</span></td>
+        <td>${l.clientName||'—'}</td>
+        <td><code>${l.externalId||'—'}</code></td>
+        <td>${l.jobTypeCode||'—'}</td>
+        <td><span class="badge badge-skipped">${l.triggerType}</span></td>
+        <td>${formatDate(l.startedAt)}</td>
+        <td>${l.durationSeconds ? l.durationSeconds+'s' : '—'}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--error);font-size:12px">${l.errorMessage||''}</td>
+      </tr>`).join('');
+    document.getElementById('dash-logs-body').innerHTML = rows || emptyRow(9,'No recent activity');
+    // Pagination
+    buildPagination('dash-pagination', d.page ?? d.Page, d.totalPages ?? d.TotalPages, loadDashboard);
+  } catch(e) {
+    document.getElementById('dash-logs-body').innerHTML = emptyRow(9,e.message,true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGS
+// ═══════════════════════════════════════════════════════════════
+async function loadLogs(page) {
+  logsPage = page;
+  const q   = document.getElementById('log-q')?.value;
+  const st  = document.getElementById('log-status')?.value;
+  const pid = document.getElementById('log-product')?.value;
+  let url = `/api/logs?page=${page}&pageSize=20`;
+  if (q)   url += `&q=${encodeURIComponent(q)}`;
+  if (st)  url += `&status=${st}`;
+  if (pid) url += `&productId=${pid}`;
+  try {
+    const d = await api('GET', url);
+    const rows = d.logs.map(l => `
+      <tr>
+        <td>${l.logId}</td>
+        <td><span class="badge badge-running">${l.productName||'—'}</span></td>
+        <td>${l.clientName||'—'}</td>
+        <td><code>${l.externalId||'—'}</code></td>
+        <td>${l.jobTypeCode||'—'}</td>
+        <td><span class="badge badge-skipped">${l.triggerType}</span></td>
+        <td>${formatDate(l.startedAt)}</td>
+        <td>${l.durationSeconds?l.durationSeconds+'s':'—'}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td class="actions-cell"><button class="btn btn-secondary btn-sm" onclick="viewLog(${l.logId})">Detail</button></td>
+      </tr>`).join('');
+    document.getElementById('logs-body').innerHTML = rows || emptyRow(10,'No logs');
+    buildPagination('logs-pagination', d.page, d.totalPages, loadLogs);
+  } catch(e) { document.getElementById('logs-body').innerHTML = emptyRow(10,e.message,true); }
+}
+
+async function viewLog(logId) {
+  try {
+    const l = await api('GET', `/api/logs/${logId}`);
+    document.getElementById('log-detail-body').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        ${row2('Log ID', l.logId)}
+        ${row2('Client', l.clientName)}
+        ${row2('External ID', `<code>${l.externalId}</code>`)}
+        ${row2('Job Type', l.jobTypeCode)}
+        ${row2('Trigger', l.triggerType)}
+        ${row2('Status', statusBadge(l.status))}
+        ${row2('Started At', formatDate(l.startedAt))}
+        ${row2('Completed At', l.completedAt ? formatDate(l.completedAt) : '—')}
+        ${row2('Duration', l.durationSeconds ? l.durationSeconds+'s' : '—')}
+        ${row2('HTTP Status', l.httpStatusCode||'—')}
+        ${row2('API URL', `<span style="word-break:break-all;font-size:11px">${l.apiUrl||'—'}</span>`)}
+        ${row2('Payload Sent', l.payloadSent ? `<pre style="font-size:11px;white-space:pre-wrap">${l.payloadSent}</pre>` : '—')}
+        ${row2('Error', l.errorMessage ? `<span style="color:var(--error)">${l.errorMessage}</span>` : '—')}
+        ${row2('Response', l.responseBody ? `<pre style="font-size:11px;white-space:pre-wrap;max-height:200px;overflow-y:auto">${l.responseBody}</pre>` : '—')}
+      </table>`;
+    openModal('modal-log');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function row2(label, val) {
+  return `<tr><td style="padding:8px 12px;font-weight:600;background:#f8fafc;border:1px solid #e2e8f0;width:130px">${label}</td><td style="padding:8px 12px;border:1px solid #e2e8f0">${val}</td></tr>`;
+}
+
+async function purgeLogs() {
+  const days = prompt('Delete logs older than how many days?', '30');
+  if (!days) return;
+  try {
+    const r = await api('DELETE', `/api/logs/purge?olderThanDays=${days}`);
+    toast(r.message); loadLogs(1);
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// API CLIENTS
+// ═══════════════════════════════════════════════════════════════
+async function loadApiClients() {
+  try {
+    const data = await api('GET', '/api/apiclients');
+    const rows = data.map((ac,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td><b>${ac.clientName}</b></td>
+        <td><code style="font-size:12px">${ac.apiKey}</code></td>
+        <td>${ac.allowedProductIds||'<span style="color:var(--text-muted)">All</span>'}</td>
+        <td>${ac.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td>${ac.lastUsedAt ? formatDate(ac.lastUsedAt) : '<span style="color:var(--text-muted)">Never</span>'}</td>
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="editApiClient(${JSON.stringify(ac).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-warning btn-sm" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="regenerateKey(${ac.apiClientId})">🔄 Regen</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteApiClient(${ac.apiClientId})">🗑</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('apiclients-body').innerHTML = rows || emptyRow(7,'No API clients');
+  } catch(e) { document.getElementById('apiclients-body').innerHTML = emptyRow(7,e.message,true); }
+}
+
+function openApiClientModal(ac) {
+  document.getElementById('ac-id').value = ac?.apiClientId||0;
+  document.getElementById('ac-name').value = ac?.clientName||'';
+  document.getElementById('ac-products').value = ac?.allowedProductIds||'';
+  document.getElementById('ac-active').checked = ac ? ac.isActive : true;
+  document.getElementById('new-key-display').style.display = 'none';
+  document.getElementById('ac-save-btn').style.display = '';
+  document.getElementById('apiclient-modal-title').textContent = ac ? 'Edit API Client' : 'New API Client';
+  openModal('modal-apiclient');
+}
+function editApiClient(ac) { openApiClientModal(ac); }
+
+async function saveApiClient() {
+  const body = {
+    apiClientId: +document.getElementById('ac-id').value,
+    clientName: document.getElementById('ac-name').value.trim(),
+    allowedProductIds: document.getElementById('ac-products').value.trim()||null,
+    isActive: document.getElementById('ac-active').checked,
+  };
+  if (!body.clientName) return toast('Client name is required','error');
+  try {
+    const r = await api('POST', '/api/apiclients/save', body);
+    if (r.apiKey) {
+      document.getElementById('new-key-value').textContent = r.apiKey;
+      document.getElementById('new-key-display').style.display = 'block';
+      document.getElementById('ac-save-btn').style.display = 'none';
+      toast('API Key generated! Copy it now.');
+    } else {
+      toast('API Client updated!');
+      closeModal('modal-apiclient');
+    }
+    loadApiClients();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function regenerateKey(id) {
+  if (!confirm('Generate a new API key? The old key will stop working.')) return;
+  try {
+    const r = await api('POST', `/api/apiclients/${id}/regenerate`);
+    document.getElementById('new-key-value').textContent = r.apiKey;
+    document.getElementById('new-key-display').style.display = 'block';
+    document.getElementById('ac-id').value = id;
+    document.getElementById('ac-save-btn').style.display = 'none';
+    openModal('modal-apiclient');
+    toast('Key regenerated! Copy it now.','warning');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteApiClient(id) {
+  if (!confirm('Delete this API client? The key will stop working.')) return;
+  try { await api('DELETE', `/api/apiclients/${id}`); toast('Deleted!'); loadApiClients(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+function copyKey() {
+  const key = document.getElementById('new-key-value').textContent;
+  navigator.clipboard.writeText(key).then(() => toast('Key copied!'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════
+async function loadSettings() {
+  try {
+    const data = await api('GET', '/api/globalconfig');
+    const rows = data.map(cfg => `
+      <div style="display:grid;grid-template-columns:200px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <div>
+          <div style="font-weight:600;font-size:13px">${cfg.configKey}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${cfg.description||''}</div>
+        </div>
+        <input type="${cfg.configKey.toLowerCase().includes('password')?'password':'text'}"
+          id="cfg-${cfg.configKey}" value="${cfg.configValue||''}"
+          style="border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px">
+        <button class="btn btn-primary btn-sm" onclick="saveSetting('${cfg.configKey}')">Save</button>
+      </div>`).join('');
+    document.getElementById('settings-body').innerHTML = rows || '<p style="color:var(--text-muted);padding:20px">No settings found.</p>';
+  } catch(e) { document.getElementById('settings-body').innerHTML = `<p style="color:var(--error);padding:20px">${e.message}</p>`; }
+}
+
+async function saveSetting(key) {
+  const val = document.getElementById(`cfg-${key}`)?.value;
+  try {
+    await api('POST', '/api/globalconfig/update', { configKey: key, configValue: val, updatedBy: 'Admin' });
+    toast(`${key} saved!`);
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function statusBadge(s) {
+  const map = { SUCCESS:'badge-success', FAILED:'badge-error', SKIPPED:'badge-skipped', RUNNING:'badge-running' };
+  return `<span class="badge ${map[s]||'badge-skipped'}">${s||'—'}</span>`;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-IN', {
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false
+  });
+}
+
+function emptyRow(cols, msg, isError=false) {
+  return `<tr><td colspan="${cols}" style="text-align:center;padding:30px;color:${isError?'var(--error)':'var(--text-muted)'}">
+    ${isError?'❌':'📭'} ${msg}</td></tr>`;
+}
+
+function buildPagination(containerId, page, totalPages, callback) {
+  const container = document.getElementById(containerId);
+  if (!container || totalPages <= 1) { if(container) container.innerHTML=''; return; }
+  let html = `<button onclick="${callback.name}(${page-1})" ${page<=1?'disabled':''}>‹ Prev</button>`;
+  for (let i = Math.max(1,page-2); i <= Math.min(totalPages,page+2); i++) {
+    html += `<button class="${i===page?'active':''}" onclick="${callback.name}(${i})">${i}</button>`;
+  }
+  html += `<button onclick="${callback.name}(${page+1})" ${page>=totalPages?'disabled':''}>Next ›</button>`;
+  html += `<span class="pagination-info">Page ${page} / ${totalPages}</span>`;
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>

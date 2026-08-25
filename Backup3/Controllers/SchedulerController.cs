@@ -196,22 +196,20 @@ namespace SaviSchedular.Controllers
         // POST /api/scheduler/trigger — Manual trigger
         // ─────────────────────────────────────────────────────────────────────
         [HttpPost, Route("trigger")]
-        public async Task<HttpResponseMessage> Trigger([FromUri] long instanceId)
+        public HttpResponseMessage Trigger([FromUri] long instanceId)
         {
             if (instanceId <= 0)
                 return Request.CreateResponse(HttpStatusCode.BadRequest, new { error = "Invalid instanceId." });
             try
             {
-                // Execute synchronously for manual trigger so UI gets immediate feedback and local breakpoints are hit
-                await SchoolSchedulerService.ExecuteJobAsync(instanceId, true);
-
+                BackgroundJob.Enqueue(() => SchoolSchedulerService.ExecuteJobAsync(instanceId, true));
                 LoggingService.SaveAuditLog("SchedulerJobInstances", instanceId.ToString(),
                     "TRIGGER", null, null, "Admin", ClientIp, "Manual trigger from Admin UI");
-                return Request.CreateResponse(HttpStatusCode.OK, new { message = $"Job executed successfully for instance {instanceId}." });
+                return Request.CreateResponse(HttpStatusCode.OK, new { message = $"Job enqueued for instance {instanceId}." });
             }
             catch (Exception ex)
             {
-                return Request.CreateResponse(HttpStatusCode.OK, new { message = $"Job executed with alert/error: {ex.Message}" });
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new { error = ex.Message });
             }
         }
 
