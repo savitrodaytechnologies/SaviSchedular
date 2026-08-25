@@ -1295,8 +1295,10 @@ async function openScheduleModal(s) {
 
   document.getElementById('sc-id').value = s?.instanceId||0;
   
-  // Auto-select product: use schedule's product or first available product
-  let targetProductId = s?.productId || (products && products.length > 0 ? products[0].productId : '');
+  // Smart Product Selection: Use schedule's product, or find SaviSchools, or first available product
+  let saviProduct = products.find(p => (p.productCode && p.productCode.toUpperCase().includes('SAVI')) || (p.productName && p.productName.toLowerCase().includes('savi')));
+  let targetProductId = s?.productId || (saviProduct ? saviProduct.productId : (products.length > 0 ? products[0].productId : ''));
+  
   document.getElementById('sc-product').value = targetProductId;
 
   document.getElementById('sc-hour').value = s?.scheduledHour??10;
