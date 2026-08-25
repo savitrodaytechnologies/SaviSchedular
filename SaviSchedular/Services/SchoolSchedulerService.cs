@@ -112,7 +112,7 @@ namespace SaviSchedular.Services
                 }
 
                 // ── Step 2: Start log ─────────────────────────────────────────
-                logId = LoggingService.StartExecutionLog(inst);
+                logId = LoggingService.StartExecutionLog(inst, triggerType);
 
                 // ── Step 3: Validate active ───────────────────────────────────
                 if (!inst.IsActive)

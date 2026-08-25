@@ -43,11 +43,19 @@ namespace SaviSchedular.Controllers
                             ji.*,
                             pc.ClientName, pc.ExternalId, pc.CustomBaseUrl,
                             p.ProductName, p.ProductCode, p.BaseUrl, p.ApiToken, p.TokenType, p.TokenHeaderName,
-                            jt.JobTypeCode, jt.JobTypeName, jt.DefaultApiPath, jt.HttpMethod
+                            jt.JobTypeCode, jt.JobTypeName, jt.DefaultApiPath, jt.HttpMethod,
+                            lastLog.Status AS LastStatus,
+                            lastLog.StartedAt AS LastRunAt
                         FROM SchedulerJobInstances ji
                         JOIN ProductClients pc  ON pc.ClientId  = ji.ClientId
                         JOIN Products p         ON p.ProductId  = ji.ProductId
                         JOIN ProductJobTypes jt ON jt.JobTypeId = ji.JobTypeId
+                        OUTER APPLY (
+                            SELECT TOP 1 Status, StartedAt
+                            FROM SchedulerExecutionLogs
+                            WHERE InstanceId = ji.InstanceId
+                            ORDER BY StartedAt DESC
+                        ) lastLog
                         WHERE 1=1";
                     if (productId.HasValue) sql += " AND ji.ProductId = @ProductId";
                     if (clientId.HasValue)  sql += " AND ji.ClientId  = @ClientId";

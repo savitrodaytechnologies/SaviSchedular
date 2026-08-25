@@ -15,7 +15,7 @@ namespace SaviSchedular.Services
         // ─────────────────────────────────────────────────────────────────────
         // Start log entry when job begins
         // ─────────────────────────────────────────────────────────────────────
-        public static long StartExecutionLog(SchedulerJobInstanceModel inst, string hangfireJobId = null)
+        public static long StartExecutionLog(SchedulerJobInstanceModel inst, string triggerType = "SCHEDULED", string hangfireJobId = null)
         {
             try
             {
@@ -37,7 +37,7 @@ namespace SaviSchedular.Services
                             ClientName    = inst.ClientName,
                             ExternalId    = inst.ExternalId,
                             JobTypeCode   = inst.JobTypeCode,
-                            TriggerType   = "SCHEDULED",
+                            TriggerType   = triggerType ?? "SCHEDULED",
                             StartedAt     = DateTime.Now,
                             HangfireJobId = hangfireJobId
                         });

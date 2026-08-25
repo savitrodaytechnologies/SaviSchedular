@@ -200,6 +200,30 @@ textarea{resize:vertical;min-height:80px}
 /* ── SECTION PAGES ── */
 .page{display:none}
 .page.active{display:block}
+
+/* ── LIVE RUNNING INDICATORS ── */
+.badge-running-pulse {
+  background: #cffafe; color: #0891b2; border: 1px solid #0891b2;
+  box-shadow: 0 0 8px rgba(8,145,178,0.4); animation: pulseGlow 1.5s infinite; font-weight: 700;
+}
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(8, 145, 178, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(8, 145, 178, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(8, 145, 178, 0); }
+}
+.live-banner {
+  background: linear-gradient(135deg, #0e7490, #06b6d4); color: #fff;
+  border-radius: var(--radius); padding: 14px 20px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3); animation: slideDown 0.3s ease;
+}
+.live-banner-left { display: flex; align-items: center; gap: 12px; }
+.live-banner-title { font-weight: 700; font-size: 14px; }
+.live-banner-sub { font-size: 12px; color: rgba(255,255,255,0.85); }
+.live-progress-bar { width: 140px; height: 6px; background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden; }
+.live-progress-fill { height: 100%; background: #fff; width: 60%; animation: animProgress 1.4s ease-in-out infinite alternate; }
+@keyframes animProgress { from { width: 15%; } to { width: 95%; } }
+@keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
 </style>
 </head>
 <body>
@@ -376,6 +400,7 @@ textarea{resize:vertical;min-height:80px}
 
     <!-- ══ SCHEDULES ══ -->
     <div class="page" id="page-schedules">
+      <div id="sc-live-banner"></div>
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Schedules</div><div class="card-subtitle">Job schedule instances for each client</div></div>
@@ -388,8 +413,8 @@ textarea{resize:vertical;min-height:80px}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Time</th><th>Timezone</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="schedules-body"><tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Product</th><th>Client</th><th>Ext ID</th><th>Job Type</th><th>Time</th><th>Timezone</th><th>Last Run Status</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="schedules-body"><tr class="loading-row"><td colspan="10"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1061,8 +1086,30 @@ async function loadSchedules() {
   const pid = document.getElementById('sc-product-filter')?.value;
   try {
     const data = await api('GET', `/api/scheduler${pid?`?productId=${pid}`:''}`);
+    
+    // Check if any job is currently running
+    const runningJob = data.find(s => s.lastStatus === 'RUNNING');
+    const bannerEl   = document.getElementById('sc-live-banner');
+    if (bannerEl) {
+      if (runningJob) {
+        bannerEl.innerHTML = `
+          <div class="live-banner">
+            <div class="live-banner-left">
+              <div class="spinner" style="border-top-color:#fff;border-color:rgba(255,255,255,0.3);width:16px;height:16px"></div>
+              <div>
+                <div class="live-banner-title">⚡ Job Currently Executing in Real-Time...</div>
+                <div class="live-banner-sub">[${runningJob.productCode}] ${runningJob.clientName} (${runningJob.externalId}) — ${runningJob.jobTypeName}</div>
+              </div>
+            </div>
+            <div class="live-progress-bar"><div class="live-progress-fill"></div></div>
+          </div>`;
+      } else {
+        bannerEl.innerHTML = '';
+      }
+    }
+
     const rows = data.map((s,i) => `
-      <tr>
+      <tr id="sched-row-${s.instanceId}">
         <td>${i+1}</td>
         <td><span class="badge badge-running">${s.productCode}</span></td>
         <td><b>${s.clientName}</b></td>
@@ -1070,15 +1117,24 @@ async function loadSchedules() {
         <td>${s.jobTypeName}</td>
         <td><b>${String(s.scheduledHour).padStart(2,'0')}:${String(s.scheduledMinute).padStart(2,'0')}</b></td>
         <td><span class="badge badge-skipped">${s.timeZone?.replace(' Standard Time','')}</span></td>
+        <td>${renderLastStatusBadge(s.lastStatus, s.lastRunAt)}</td>
         <td>${s.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
         <td class="actions-cell">
-          <button class="btn btn-success btn-sm" title="Manual Trigger" onclick="triggerSchedule(${s.instanceId})">▶</button>
+          <button class="btn btn-success btn-sm" id="btn-trig-${s.instanceId}" title="Manual Trigger" onclick="triggerSchedule(${s.instanceId})">▶</button>
           <button class="btn btn-secondary btn-sm" onclick="editSchedule(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏</button>
           <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${s.instanceId})">🗑</button>
         </td>
       </tr>`).join('');
-    document.getElementById('schedules-body').innerHTML = rows || emptyRow(9,'No schedules');
-  } catch(e) { document.getElementById('schedules-body').innerHTML = emptyRow(9,e.message,true); }
+    document.getElementById('schedules-body').innerHTML = rows || emptyRow(10,'No schedules');
+  } catch(e) { document.getElementById('schedules-body').innerHTML = emptyRow(10,e.message,true); }
+}
+
+function renderLastStatusBadge(status, lastRunAt) {
+  if (status === 'RUNNING') return `<span class="badge badge-running-pulse"><span class="spinner" style="width:10px;height:10px;border-width:1.5px;border-top-color:#0891b2;display:inline-block;margin-right:4px"></span> RUNNING...</span>`;
+  if (status === 'SUCCESS') return `<span class="badge badge-success">✓ SUCCESS</span><br><small style="font-size:10px;color:var(--text-muted)">${formatDate(lastRunAt)}</small>`;
+  if (status === 'FAILED')  return `<span class="badge badge-error">✗ FAILED</span><br><small style="font-size:10px;color:var(--error)">${formatDate(lastRunAt)}</small>`;
+  if (status === 'SKIPPED') return `<span class="badge badge-skipped">SKIPPED</span>`;
+  return `<span style="color:var(--text-muted);font-size:11px">Never Run</span>`;
 }
 
 async function loadClientsForSchedule() {
@@ -1148,11 +1204,24 @@ async function saveSchedule() {
 }
 
 async function triggerSchedule(instanceId) {
-  if (!confirm('Manually trigger this job now?')) return;
+  const btn = document.getElementById(`btn-trig-${instanceId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block"></span>`;
+  }
+  toast('Executing job in real-time...', 'warning');
   try {
-    await api('POST', `/api/scheduler/trigger?instanceId=${instanceId}`);
-    toast('Job enqueued!');
+    const res = await api('POST', `/api/scheduler/trigger?instanceId=${instanceId}`);
+    toast(res.message || 'Job executed!');
   } catch(e) { toast(e.message,'error'); }
+  finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '▶';
+    }
+    loadSchedules();
+    if (currentPage === 'dashboard') loadDashboard(dashPage);
+  }
 }
 
 async function deleteSchedule(id) {
@@ -1418,6 +1487,15 @@ function buildPagination(containerId, page, totalPages, callback) {
   html += `<span class="pagination-info">Page ${page} / ${totalPages}</span>`;
   container.innerHTML = html;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// REAL-TIME AUTO REFRESH (5s Polling)
+// ═══════════════════════════════════════════════════════════════
+setInterval(() => {
+  if (currentPage === 'dashboard') loadDashboard(dashPage);
+  if (currentPage === 'schedules') loadSchedules();
+  if (currentPage === 'logs') loadLogs(logsPage);
+}, 5000);
 </script>
 </body>
 </html>

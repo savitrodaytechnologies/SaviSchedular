@@ -79,6 +79,8 @@ namespace SaviSchedular.Models
         public bool   IsActive               { get; set; }
         public bool   RunOnHolidays          { get; set; }
         public int    MisfireThresholdMinutes{ get; set; }
+        public string LastStatus { get; set; }
+        public DateTime? LastRunAt { get; set; }
         public DateTime CreatedAt            { get; set; }
         public DateTime UpdatedAt            { get; set; }
         public string CreatedBy              { get; set; }
