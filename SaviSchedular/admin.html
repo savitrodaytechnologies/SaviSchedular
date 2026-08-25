@@ -620,12 +620,13 @@ textarea{resize:vertical;min-height:80px}
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Token Type</label>
-          <select id="p-token-type">
-            <option value="Bearer">Bearer</option>
-            <option value="ApiKey">ApiKey</option>
-            <option value="Basic">Basic</option>
-            <option value="Custom">Custom</option>
+          <label>Auth Type</label>
+          <select id="p-auth-type" onchange="onAuthTypeChange()">
+            <option value="Bearer">Bearer Token (Static)</option>
+            <option value="OAuth2">OAuth2 / Dynamic JWT</option>
+            <option value="ApiKey">ApiKey (Custom Header)</option>
+            <option value="Basic">Basic Auth</option>
+            <option value="None">None</option>
           </select>
         </div>
         <div class="form-group">
@@ -633,9 +634,25 @@ textarea{resize:vertical;min-height:80px}
           <input type="text" id="p-token-header" placeholder="Authorization">
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="group-p-token">
         <label>API Token / Key</label>
         <input type="password" id="p-token" placeholder="Enter token (leave blank to keep existing)">
+      </div>
+      <div id="group-oauth-fields" style="display:none;background:#f1f5f9;padding:12px;border-radius:8px;margin-bottom:12px">
+        <div class="form-group">
+          <label>OAuth Token URL</label>
+          <input type="text" id="p-token-url" placeholder="https://auth.example.com/token">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client ID</label>
+            <input type="text" id="p-client-id" placeholder="savi-schedular-app">
+          </div>
+          <div class="form-group">
+            <label>Client Secret</label>
+            <input type="password" id="p-client-secret" placeholder="•••••••• (leave blank to keep)">
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label>Description</label>
@@ -993,17 +1010,28 @@ async function loadProductsTable() {
   } catch(e) { document.getElementById('products-body').innerHTML = emptyRow(7, e.message, true); }
 }
 
+function onAuthTypeChange() {
+  const type = document.getElementById('p-auth-type').value;
+  const isOAuth = (type === 'OAuth2');
+  document.getElementById('group-oauth-fields').style.display = isOAuth ? 'block' : 'none';
+  document.getElementById('group-p-token').style.display = isOAuth ? 'none' : 'block';
+}
+
 function openProductModal(p) {
   document.getElementById('p-id').value    = p?.productId||0;
   document.getElementById('p-code').value  = p?.productCode||'';
   document.getElementById('p-name').value  = p?.productName||'';
   document.getElementById('p-url').value   = p?.baseUrl||'';
-  document.getElementById('p-token-type').value = p?.tokenType||'Bearer';
+  document.getElementById('p-auth-type').value = p?.authType||'Bearer';
   document.getElementById('p-token-header').value = p?.tokenHeaderName||'Authorization';
   document.getElementById('p-token').value = '';
+  document.getElementById('p-token-url').value = p?.tokenUrl||'';
+  document.getElementById('p-client-id').value = p?.clientId||'';
+  document.getElementById('p-client-secret').value = '';
   document.getElementById('p-desc').value  = p?.description||'';
   document.getElementById('p-active').checked = p ? p.isActive : true;
   document.getElementById('product-modal-title').textContent = p ? 'Edit Product' : 'Add Product';
+  onAuthTypeChange();
   openModal('modal-product');
 }
 
@@ -1013,14 +1041,19 @@ async function editProduct(id) {
 }
 
 async function saveProduct() {
+  const authType = document.getElementById('p-auth-type').value;
   const body = {
     productId: +document.getElementById('p-id').value,
     productCode: document.getElementById('p-code').value.trim().toUpperCase(),
     productName: document.getElementById('p-name').value.trim(),
     baseUrl: document.getElementById('p-url').value.trim(),
-    apiToken: document.getElementById('p-token').value.trim()||'••••••••',
-    tokenType: document.getElementById('p-token-type').value,
+    authType: authType,
+    tokenType: authType === 'ApiKey' ? 'ApiKey' : authType === 'Basic' ? 'Basic' : 'Bearer',
     tokenHeaderName: document.getElementById('p-token-header').value||'Authorization',
+    apiToken: document.getElementById('p-token').value.trim()||'••••••••',
+    tokenUrl: document.getElementById('p-token-url').value.trim(),
+    clientId: document.getElementById('p-client-id').value.trim(),
+    clientSecret: document.getElementById('p-client-secret').value.trim()||'••••••••',
     description: document.getElementById('p-desc').value.trim(),
     isActive: document.getElementById('p-active').checked,
   };

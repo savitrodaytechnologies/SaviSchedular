@@ -109,6 +109,9 @@
     <Compile Include="Services\SchoolSchedulerService.cs" />
     <Compile Include="Services\GlobalConfigService.cs" />
     <Compile Include="Services\LoggingService.cs" />
+    <Compile Include="Services\Security\EncryptionHelper.cs" />
+    <Compile Include="Services\Security\JwtTokenManager.cs" />
+    <Compile Include="Services\Security\SecureLogger.cs" />
     <!-- App -->
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

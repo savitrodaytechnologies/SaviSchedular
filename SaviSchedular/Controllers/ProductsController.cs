@@ -8,6 +8,7 @@ using System.Web.Http;
 using Dapper;
 using SaviSchedular.Models;
 using SaviSchedular.Services;
+using SaviSchedular.Services.Security;
 
 namespace SaviSchedular.Controllers
 {
@@ -32,8 +33,8 @@ namespace SaviSchedular.Controllers
                 {
                     conn.Open();
                     var list = conn.Query<ProductModel>(
-                        "SELECT ProductId, ProductCode, ProductName, BaseUrl, TokenType, TokenHeaderName, Description, IsActive, CreatedAt, CreatedBy FROM Products ORDER BY ProductName").AsList();
-                    // Never expose ApiToken in list
+                        "SELECT ProductId, ProductCode, ProductName, BaseUrl, TokenType, TokenHeaderName, AuthType, TokenUrl, ClientId, Description, IsActive, CreatedAt, CreatedBy FROM Products ORDER BY ProductName").AsList();
+                    // Never expose ApiToken or ClientSecret in list
                     return Request.CreateResponse(HttpStatusCode.OK, list);
                 }
             }
@@ -56,9 +57,9 @@ namespace SaviSchedular.Controllers
                         "SELECT * FROM Products WHERE ProductId = @Id", new { Id = id });
                     if (item == null)
                         return Request.CreateResponse(HttpStatusCode.NotFound, new { error = "Product not found." });
-                    // Mask token
-                    if (!string.IsNullOrEmpty(item.ApiToken))
-                        item.ApiToken = "••••••••";
+                    // Mask tokens and secrets
+                    if (!string.IsNullOrEmpty(item.ApiToken)) item.ApiToken = "••••••••";
+                    if (!string.IsNullOrEmpty(item.ClientSecret)) item.ClientSecret = "••••••••";
                     return Request.CreateResponse(HttpStatusCode.OK, item);
                 }
             }
@@ -83,14 +84,20 @@ namespace SaviSchedular.Controllers
                     if (req.ProductId == 0)
                     {
                         // INSERT
+                        string secretToSave = !string.IsNullOrEmpty(req.ClientSecret) && req.ClientSecret != "••••••••"
+                            ? EncryptionHelper.Encrypt(req.ClientSecret)
+                            : null;
+
                         var newId = conn.ExecuteScalar<int>(@"
-                            INSERT INTO Products (ProductCode, ProductName, BaseUrl, ApiToken, TokenType, TokenHeaderName, Description, IsActive, CreatedAt, CreatedBy)
-                            VALUES (@ProductCode, @ProductName, @BaseUrl, @ApiToken, @TokenType, @TokenHeaderName, @Description, @IsActive, @Now, @By);
+                            INSERT INTO Products (ProductCode, ProductName, BaseUrl, ApiToken, TokenType, TokenHeaderName, AuthType, TokenUrl, ClientId, ClientSecret, Description, IsActive, CreatedAt, CreatedBy)
+                            VALUES (@ProductCode, @ProductName, @BaseUrl, @ApiToken, @TokenType, @TokenHeaderName, @AuthType, @TokenUrl, @ClientId, @ClientSecret, @Description, @IsActive, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS INT);",
                             new {
                                 req.ProductCode, req.ProductName, req.BaseUrl, req.ApiToken,
                                 TokenType = req.TokenType ?? "Bearer",
                                 TokenHeaderName = req.TokenHeaderName ?? "Authorization",
+                                AuthType = req.AuthType ?? "Bearer",
+                                req.TokenUrl, req.ClientId, ClientSecret = secretToSave,
                                 req.Description, req.IsActive, Now = DateTime.Now, By = "Admin"
                             });
                         LoggingService.SaveAuditLog("Products", newId.ToString(), "INSERT", null, req, "Admin", ClientIp);
@@ -98,11 +105,15 @@ namespace SaviSchedular.Controllers
                     }
                     else
                     {
-                        // UPDATE — only update token if a new non-masked value is provided
+                        // UPDATE — only update token and secret if new non-masked values are provided
                         var old = conn.QueryFirstOrDefault<ProductModel>("SELECT * FROM Products WHERE ProductId=@Id", new { Id = req.ProductId });
                         string tokenToSave = (req.ApiToken == "••••••••" || string.IsNullOrEmpty(req.ApiToken))
                             ? old?.ApiToken
                             : req.ApiToken;
+
+                        string secretToSave = (req.ClientSecret == "••••••••" || string.IsNullOrEmpty(req.ClientSecret))
+                            ? old?.ClientSecret
+                            : EncryptionHelper.Encrypt(req.ClientSecret);
 
                         conn.Execute(@"
                             UPDATE Products SET
@@ -112,6 +123,10 @@ namespace SaviSchedular.Controllers
                                 ApiToken        = @ApiToken,
                                 TokenType       = @TokenType,
                                 TokenHeaderName = @TokenHeaderName,
+                                AuthType        = @AuthType,
+                                TokenUrl        = @TokenUrl,
+                                ClientId        = @ClientId,
+                                ClientSecret    = @ClientSecret,
                                 Description     = @Description,
                                 IsActive        = @IsActive
                             WHERE ProductId = @ProductId",
@@ -120,6 +135,8 @@ namespace SaviSchedular.Controllers
                                 ApiToken = tokenToSave,
                                 TokenType = req.TokenType ?? "Bearer",
                                 TokenHeaderName = req.TokenHeaderName ?? "Authorization",
+                                AuthType = req.AuthType ?? "Bearer",
+                                req.TokenUrl, req.ClientId, ClientSecret = secretToSave,
                                 req.Description, req.IsActive, req.ProductId
                             });
                         LoggingService.SaveAuditLog("Products", req.ProductId.ToString(), "UPDATE", old, req, "Admin", ClientIp);

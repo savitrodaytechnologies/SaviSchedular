@@ -1,6 +1,7 @@
 using System;
 using System.Configuration;
 using System.Data.SqlClient;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -9,6 +10,7 @@ using Dapper;
 using Hangfire;
 using Newtonsoft.Json;
 using SaviSchedular.Models;
+using SaviSchedular.Services.Security;
 
 namespace SaviSchedular.Services
 {
@@ -173,12 +175,34 @@ namespace SaviSchedular.Services
                 // Merge PayloadJson + ExternalId auto-injection
                 string payloadJson = BuildPayload(inst);
 
-                // ── Step 7: Resolve auth token ────────────────────────────────
-                string token      = inst.CustomApiToken ?? inst.ApiToken;
-                string tokenType  = inst.TokenType      ?? "Bearer";
+                // ── Step 7: Resolve auth token & In-Memory JWT Cache ─────────
+                string authType   = inst.AuthType ?? "Bearer";
+                string tokenType  = inst.TokenType ?? "Bearer";
                 string headerName = inst.TokenHeaderName ?? "Authorization";
+                
+                // Decrypt client secret if present
+                string decryptedSecret = !string.IsNullOrEmpty(inst.ClientSecret) 
+                    ? EncryptionHelper.Decrypt(inst.ClientSecret) 
+                    : null;
 
-                // ── Step 8: Make HTTP call ────────────────────────────────────
+                // Resolve token dynamically from RAM Cache or OAuth2 TokenUrl
+                string token = await JwtTokenManager.GetValidTokenInternalAsync(
+                    inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
+                    inst.CustomApiToken ?? inst.ApiToken);
+
+                // Enforce HTTPS check for remote URLs when using JWT/OAuth2 authentication
+                if ((authType == "OAuth2" || authType == "Bearer") && 
+                    !fullUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && 
+                    !fullUrl.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase) &&
+                    !fullUrl.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                {
+                    string httpWarning = $"Security Error: HTTPS is enforced for JWT authentication. Target URL '{fullUrl}' is insecure.";
+                    Console.WriteLine($"[SaviSchedular v2] ✗ REJECTED: Instance {instanceId} | {httpWarning}");
+                    LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl, 400, null, httpWarning, payloadSent: payloadJson);
+                    throw new Exception(httpWarning);
+                }
+
+                // ── Step 8: Make HTTP call with 401 Single Retry ─────────────
                 Console.WriteLine(
                     $"[SaviSchedular v2] → [{inst.ProductCode}] {inst.ClientName} ({inst.ExternalId}) | {inst.JobTypeCode} | {fullUrl}");
 
@@ -186,35 +210,68 @@ namespace SaviSchedular.Services
                 {
                     client.Timeout = TimeSpan.FromMinutes(15);
 
-                    // Attach auth token
-                    if (!string.IsNullOrEmpty(token))
+                    Action attachAuthHeader = () =>
                     {
-                        if (tokenType == "Bearer")
-                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                        else if (tokenType == "Basic")
-                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-                                Convert.ToBase64String(Encoding.UTF8.GetBytes(token)));
-                        else
-                            client.DefaultRequestHeaders.Add(headerName, token);
-                    }
+                        client.DefaultRequestHeaders.Authorization = null;
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            if (tokenType == "Bearer" || authType == "OAuth2" || authType == "Bearer")
+                                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                            else if (tokenType == "Basic" || authType == "Basic")
+                                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
+                                    Convert.ToBase64String(Encoding.UTF8.GetBytes(token)));
+                            else
+                                client.DefaultRequestHeaders.Add(headerName, token);
+                        }
+                    };
+
+                    attachAuthHeader();
 
                     HttpResponseMessage response;
                     string httpMethod = inst.HttpMethod?.ToUpperInvariant() ?? "POST";
 
-                    if (httpMethod == "GET")
+                    Func<Task<HttpResponseMessage>> executeHttpCall = async () =>
                     {
-                        // For GET: append ExternalId as query param if not already present
-                        if (!fullUrl.Contains("externalId=") && !fullUrl.Contains("targetSchoolId="))
+                        if (httpMethod == "GET")
                         {
-                            string sep = fullUrl.Contains("?") ? "&" : "?";
-                            fullUrl += $"{sep}targetId={Uri.EscapeDataString(inst.ExternalId ?? "")}";
+                            string targetUrl = fullUrl;
+                            if (!targetUrl.Contains("externalId=") && !targetUrl.Contains("targetSchoolId="))
+                            {
+                                string sep = targetUrl.Contains("?") ? "&" : "?";
+                                targetUrl += $"{sep}targetId={Uri.EscapeDataString(inst.ExternalId ?? "")}";
+                            }
+                            return await client.GetAsync(targetUrl);
                         }
-                        response = await client.GetAsync(fullUrl);
-                    }
-                    else
+                        else
+                        {
+                            var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+                            return await client.PostAsync(fullUrl, content);
+                        }
+                    };
+
+                    response = await executeHttpCall();
+
+                    // 401 Single Retry Logic: Invalidate RAM Token -> Fetch Fresh Token -> Retry ONCE
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
-                        response = await client.PostAsync(fullUrl, content);
+                        Console.WriteLine($"[SaviSchedular v2] ⚠️ 401 Unauthorized received for Instance {instanceId}. Invalidating RAM Token and retrying ONCE...");
+                        
+                        JwtTokenManager.InvalidateToken(inst.ProductId);
+                        token = await JwtTokenManager.GetValidTokenInternalAsync(
+                            inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
+                            inst.CustomApiToken ?? inst.ApiToken);
+
+                        attachAuthHeader();
+                        response = await executeHttpCall();
+
+                        if (response.StatusCode == HttpStatusCode.Unauthorized)
+                        {
+                            string authFailed = "Authentication Failed: 401 Unauthorized returned twice. Retry stopped to prevent DoS loop.";
+                            Console.WriteLine($"[SaviSchedular v2] ✗ STOPPED: Instance {instanceId} | {authFailed}");
+                            LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl, (int)response.StatusCode, "Authorization: ********", authFailed, payloadSent: payloadJson);
+                            TrySendFailureEmail(inst, fullUrl, authFailed);
+                            throw new Exception(authFailed);
+                        }
                     }
 
                     string body = await response.Content.ReadAsStringAsync();
@@ -223,14 +280,14 @@ namespace SaviSchedular.Services
                     {
                         Console.WriteLine($"[SaviSchedular v2] ✓ SUCCESS: Instance {instanceId} | HTTP {(int)response.StatusCode}");
                         LoggingService.CompleteExecutionLog(logId, "SUCCESS", fullUrl,
-                            (int)response.StatusCode, body, payloadSent: payloadJson);
+                            (int)response.StatusCode, SecureLogger.Sanitize(body), payloadSent: payloadJson);
                     }
                     else
                     {
-                        string err = $"HTTP {(int)response.StatusCode}: {body}";
+                        string err = $"HTTP {(int)response.StatusCode}: {SecureLogger.Sanitize(body)}";
                         Console.WriteLine($"[SaviSchedular v2] ✗ FAILED: Instance {instanceId} | {err}");
                         LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl,
-                            (int)response.StatusCode, body, err, payloadSent: payloadJson);
+                            (int)response.StatusCode, SecureLogger.Sanitize(body), err, payloadSent: payloadJson);
                         TrySendFailureEmail(inst, fullUrl, err);
                         throw new Exception($"API call failed — {err}");
                     }

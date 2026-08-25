@@ -16,6 +16,10 @@ namespace SaviSchedular.Models
         public string ApiToken        { get; set; }
         public string TokenType       { get; set; }
         public string TokenHeaderName { get; set; }
+        public string AuthType        { get; set; }
+        public string TokenUrl        { get; set; }
+        public string ClientId        { get; set; }
+        public string ClientSecret    { get; set; }
         public string Description     { get; set; }
         public bool   IsActive        { get; set; }
         public DateTime CreatedAt     { get; set; }
@@ -68,6 +72,10 @@ namespace SaviSchedular.Models
         public string ApiToken               { get; set; }
         public string TokenType              { get; set; }
         public string TokenHeaderName        { get; set; }
+        public string AuthType               { get; set; }
+        public string TokenUrl               { get; set; }
+        public string OAuthClientId          { get; set; }
+        public string ClientSecret           { get; set; }
         // Instance-specific
         public string CustomApiPath          { get; set; }
         public string CustomApiToken         { get; set; }
@@ -157,6 +165,10 @@ namespace SaviSchedular.Models
         public string ApiToken        { get; set; }
         public string TokenType       { get; set; }
         public string TokenHeaderName { get; set; }
+        public string AuthType        { get; set; }
+        public string TokenUrl        { get; set; }
+        public string ClientId        { get; set; }
+        public string ClientSecret    { get; set; }
         public string Description     { get; set; }
         public bool   IsActive        { get; set; }
     }
