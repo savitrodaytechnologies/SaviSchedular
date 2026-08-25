@@ -246,7 +246,11 @@ namespace SaviSchedular.Models
     public class ExternalScheduleRequest
     {
         public string ProductCode             { get; set; }
+        public string ProductName             { get; set; }
         public string JobTypeCode             { get; set; }
+        public string JobTypeName             { get; set; }
+        public string DefaultApiPath          { get; set; }
+        public string HttpMethod              { get; set; }
         public string ExternalId              { get; set; }
         public string ClientName              { get; set; }
         public int    ScheduledHour           { get; set; }

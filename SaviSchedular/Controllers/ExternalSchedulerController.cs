@@ -85,7 +85,7 @@ namespace SaviSchedular.Controllers
                     string pCode = req.ProductCode.Trim().ToUpper();
                     string jCode = req.JobTypeCode.Trim().ToUpper();
 
-                    // Resolve or Auto-Create Product
+                    // Resolve or Auto-Create / Update Product
                     var product = conn.QueryFirstOrDefault<ProductModel>(
                         "SELECT * FROM Products WHERE ProductCode=@Code",
                         new { Code = pCode });
@@ -97,30 +97,51 @@ namespace SaviSchedular.Controllers
                             INSERT INTO Products (ProductCode, ProductName, BaseUrl, TokenType, TokenHeaderName, AuthType, IsActive, CreatedAt)
                             VALUES (@Code, @Name, 'http://localhost:44548', 'Bearer', 'Authorization', 'RS256', 1, GETDATE());
                             SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                            new { Code = pCode, Name = pCode });
+                            new { Code = pCode, Name = !string.IsNullOrWhiteSpace(req.ProductName) ? req.ProductName.Trim() : pCode });
                     }
                     else
                     {
                         productId = product.ProductId;
+                        if (!string.IsNullOrWhiteSpace(req.ProductName) && req.ProductName != product.ProductName)
+                        {
+                            conn.Execute("UPDATE Products SET ProductName=@Name WHERE ProductId=@Id",
+                                new { Name = req.ProductName.Trim(), Id = productId });
+                        }
                     }
 
-                    // Resolve or Auto-Create JobType
+                    // Resolve or Auto-Create / Update JobType
                     var jobType = conn.QueryFirstOrDefault<ProductJobTypeModel>(
                         "SELECT * FROM ProductJobTypes WHERE ProductId=@PId AND JobTypeCode=@Code",
                         new { PId = productId, Code = jCode });
+
+                    string defaultApiPath = req.DefaultApiPath ?? req.CustomApiPath ?? "/api/asapi/schoolanalyticsSchedulers";
+                    string jobTypeName = !string.IsNullOrWhiteSpace(req.JobTypeName) ? req.JobTypeName.Trim() : jCode;
+                    string httpMethod = !string.IsNullOrWhiteSpace(req.HttpMethod) ? req.HttpMethod.Trim().ToUpper() : "POST";
 
                     int jobTypeId;
                     if (jobType == null)
                     {
                         jobTypeId = conn.ExecuteScalar<int>(@"
                             INSERT INTO ProductJobTypes (ProductId, JobTypeCode, JobTypeName, DefaultApiPath, HttpMethod, IsActive)
-                            VALUES (@ProductId, @Code, @Name, '/api/asapi/schoolanalyticsSchedulers', 'POST', 1);
+                            VALUES (@ProductId, @Code, @Name, @ApiPath, @Method, 1);
                             SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                            new { ProductId = productId, Code = jCode, Name = jCode });
+                            new { ProductId = productId, Code = jCode, Name = jobTypeName, ApiPath = defaultApiPath, Method = httpMethod });
                     }
                     else
                     {
                         jobTypeId = jobType.JobTypeId;
+                        conn.Execute(@"
+                            UPDATE ProductJobTypes SET
+                                JobTypeName    = COALESCE(@Name, JobTypeName),
+                                DefaultApiPath = COALESCE(@ApiPath, DefaultApiPath),
+                                HttpMethod     = COALESCE(@Method, HttpMethod)
+                            WHERE JobTypeId = @Id",
+                            new {
+                                Name = !string.IsNullOrWhiteSpace(req.JobTypeName) ? req.JobTypeName.Trim() : null,
+                                ApiPath = !string.IsNullOrWhiteSpace(req.DefaultApiPath) ? req.DefaultApiPath.Trim() : (!string.IsNullOrWhiteSpace(req.CustomApiPath) ? req.CustomApiPath.Trim() : null),
+                                Method = !string.IsNullOrWhiteSpace(req.HttpMethod) ? req.HttpMethod.Trim().ToUpper() : null,
+                                Id = jobTypeId
+                            });
                     }
 
                     // Upsert ProductClient
