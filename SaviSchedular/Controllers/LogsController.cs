@@ -42,17 +42,14 @@ namespace SaviSchedular.Controllers
                 {
                     conn.Open();
 
-                    var logs = conn.Query($@"
-                        SELECT el.*, p.ProductName
-                        FROM SchedulerExecutionLogs el
-                        LEFT JOIN Products p ON p.ProductId = el.ProductId
-                        {where}
-                        ORDER BY el.StartedAt DESC
-                        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
-                        new {{ ProductId = productId, ClientId = clientId, Status = status, Q = $"%{q}%", Offset = offset, PageSize = pageSize }}).AsList();
+                    string logSql = "SELECT el.*, p.ProductName FROM SchedulerExecutionLogs el LEFT JOIN Products p ON p.ProductId = el.ProductId " + where + " ORDER BY el.StartedAt DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+                    string countSql = "SELECT COUNT(1) FROM SchedulerExecutionLogs el " + where;
 
-                    int total = conn.ExecuteScalar<int>($"SELECT COUNT(1) FROM SchedulerExecutionLogs el {where}",
-                        new {{ ProductId = productId, ClientId = clientId, Status = status, Q = $"%{q}%" }});
+                    var logs = conn.Query(logSql,
+                        new { ProductId = productId, ClientId = clientId, Status = status, Q = "%" + q + "%", Offset = offset, PageSize = pageSize }).AsList();
+
+                    int total = conn.ExecuteScalar<int>(countSql,
+                        new { ProductId = productId, ClientId = clientId, Status = status, Q = "%" + q + "%" });
 
                     return Request.CreateResponse(HttpStatusCode.OK, new {
                         logs, total, page, pageSize,
