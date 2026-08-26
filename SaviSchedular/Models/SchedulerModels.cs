@@ -96,6 +96,9 @@ namespace SaviSchedular.Models
         public string ScheduledDays          { get; set; }
         public string DayOfMonth             { get; set; }
         public string MonthOfYear            { get; set; }
+        public string MultipleTimes          { get; set; }
+        public int?   IntervalValue          { get; set; }
+        public string IntervalUnit           { get; set; }
         public string ScheduleRules          { get; set; }
         public string CronExpression         { get; set; }
         public string TimeZone               { get; set; }
@@ -230,6 +233,9 @@ namespace SaviSchedular.Models
         public string ScheduledDays          { get; set; }
         public string DayOfMonth             { get; set; }
         public string MonthOfYear            { get; set; }
+        public string MultipleTimes          { get; set; }
+        public int?   IntervalValue          { get; set; }
+        public string IntervalUnit           { get; set; }
         public string ScheduleRules          { get; set; }
         public string CronExpression         { get; set; }
         public string TimeZone               { get; set; }
@@ -276,6 +282,9 @@ namespace SaviSchedular.Models
         public string ScheduledDays          { get; set; }
         public string DayOfMonth             { get; set; }
         public string MonthOfYear            { get; set; }
+        public string MultipleTimes          { get; set; }
+        public int?   IntervalValue          { get; set; }
+        public string IntervalUnit           { get; set; }
         public string ScheduleRules          { get; set; }
         public string CronExpression         { get; set; }
         public string CustomApiPath           { get; set; }

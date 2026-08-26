@@ -58,23 +58,25 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .content{flex:1;overflow-y:auto;padding:24px 28px}
 
 /* ── CARDS ── */
-.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);
-  box-shadow:var(--shadow);padding:20px}
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card-title{font-size:15px;font-weight:700;color:var(--text)}
-.card-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px}
+.card{background:var(--card);border-radius:16px;border:1px solid #e2e8f0;
+  box-shadow:0 4px 20px rgba(0,0,0,0.04);padding:24px; transition:all 0.2s ease}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
+.card-subtitle{font-size:12.5px;color:var(--text-muted);margin-top:3px}
 
 /* ── STAT CARDS ── */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:24px}
-.stat-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);
-  padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
-.stat-value{font-size:28px;font-weight:800;color:var(--text);line-height:1}
-.stat-card.success .stat-value{color:var(--success)}
-.stat-card.error .stat-value{color:var(--error)}
-.stat-card.warning .stat-value{color:var(--warning)}
-.stat-card.running .stat-value{color:var(--running)}
-.stat-card.accent .stat-value{color:var(--accent)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:14px;border:1px solid #e2e8f0;
+  padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.03);display:flex;flex-direction:column;gap:8px;
+  transition:all 0.25s ease; position:relative; overflow:hidden}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 10px 25px rgba(0,0,0,0.07);border-color:#cbd5e1}
+.stat-label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.stat-value{font-size:30px;font-weight:800;color:var(--text);line-height:1}
+.stat-card.success .stat-value{color:#059669}
+.stat-card.error .stat-value{color:#dc2626}
+.stat-card.warning .stat-value{color:#d97706}
+.stat-card.running .stat-value{color:#0891b2}
+.stat-card.accent .stat-value{color:#4f46e5}
 
 /* ── UNIFIED PROFESSIONAL TOOLBAR SYSTEM ── */
 .toolbar {
@@ -352,11 +354,9 @@ textarea{resize:vertical;min-height:80px}
   <div class="nav-item" onclick="showPage('logs')" id="nav-logs">
     <span class="icon">📜</span> Execution Logs
   </div>
-  <div class="nav-item" onclick="showPage('apiclients')" id="nav-apiclients">
-    <span class="icon">🔑</span> API Keys
-  </div>
-  <div class="nav-item" onclick="window.open('/external-tester.html','_blank')">
-    <span class="icon">🚀</span> External API Playground ↗
+
+  <div class="nav-item" onclick="showPage('externalapi')" id="nav-externalapi">
+    <span class="icon">🚀</span> External API Payloads
   </div>
 
   <div class="sidebar-section">Config</div>
@@ -384,7 +384,7 @@ textarea{resize:vertical;min-height:80px}
         <span id="user-display-role" class="badge badge-running" style="font-size:10px;text-transform:uppercase">SuperAdmin</span>
       </div>
       <button class="btn-refresh" onclick="refreshCurrentPage()">🔄 Refresh</button>
-      <a href="/external-tester.html" target="_blank" class="btn btn-secondary btn-sm">API Playground 🧪</a>
+      <button class="btn btn-secondary btn-sm" onclick="showPage('externalapi')">API Payloads 🧪</button>
       <a href="/hangfire" target="_blank" class="btn btn-secondary btn-sm">Hangfire ↗</a>
       <button class="btn btn-danger btn-sm" onclick="handleLogout()" style="margin-left:4px">🚪 Logout</button>
     </div>
@@ -395,12 +395,48 @@ textarea{resize:vertical;min-height:80px}
     <!-- ══ DASHBOARD ══ -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid" id="dash-stats">
-        <div class="stat-card"><div class="stat-label">Products</div><div class="stat-value" id="s-products">—</div></div>
-        <div class="stat-card accent"><div class="stat-label">Total Clients</div><div class="stat-value" id="s-clients">—</div></div>
-        <div class="stat-card"><div class="stat-label">Active Schedules</div><div class="stat-value" id="s-schedules">—</div></div>
-        <div class="stat-card success"><div class="stat-label">Success Today</div><div class="stat-value" id="s-success">—</div></div>
-        <div class="stat-card error"><div class="stat-label">Failed Today</div><div class="stat-value" id="s-failed">—</div></div>
-        <div class="stat-card running"><div class="stat-label">Running Now</div><div class="stat-value" id="s-running">—</div></div>
+        <div class="stat-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="stat-label">Products</div>
+            <span style="background:#e0e7ff; color:#4338ca; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;">📦</span>
+          </div>
+          <div class="stat-value" id="s-products">—</div>
+        </div>
+        <div class="stat-card accent">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="stat-label">Total Clients</div>
+            <span style="background:#e0f2fe; color:#0369a1; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;">👥</span>
+          </div>
+          <div class="stat-value" id="s-clients">—</div>
+        </div>
+        <div class="stat-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="stat-label">Active Schedules</div>
+            <span style="background:#f3e8ff; color:#7e22ce; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;">⏰</span>
+          </div>
+          <div class="stat-value" id="s-schedules">—</div>
+        </div>
+        <div class="stat-card success">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="stat-label">Success Today</div>
+            <span style="background:#d1fae5; color:#047857; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;">✓</span>
+          </div>
+          <div class="stat-value" id="s-success">—</div>
+        </div>
+        <div class="stat-card error">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="stat-label">Failed Today</div>
+            <span style="background:#fee2e2; color:#b91c1c; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;">✗</span>
+          </div>
+          <div class="stat-value" id="s-failed">—</div>
+        </div>
+        <div class="stat-card running">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="stat-label">Running Now</div>
+            <span style="background:#cffafe; color:#0e7490; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;">⚡</span>
+          </div>
+          <div class="stat-value" id="s-running">—</div>
+        </div>
       </div>
 
       <div class="card">
@@ -410,7 +446,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="dash-q" placeholder="Search client, job, error..." oninput="debounceSearch('dash', () => loadDashboard(1))">
+            <input type="text" id="dash-q" name="search_dash_q_nofill" autocomplete="off" placeholder="Search client, job, error..." oninput="debounceSearch('dash', () => loadDashboard(1))">
           </div>
           <select class="filter-select" id="dash-status" onchange="loadDashboard(1)">
             <option value="">All Statuses</option>
@@ -463,7 +499,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="jt-q" placeholder="Search job code, name, path..." oninput="debounceSearch('jt', () => loadJobTypes())">
+            <input type="text" id="jt-q" name="search_jt_q_nofill" autocomplete="off" placeholder="Search job code, name, path..." oninput="debounceSearch('jt', () => loadJobTypes())">
           </div>
           <select class="filter-select" id="jt-product-filter" onchange="loadJobTypes()">
             <option value="">All Products</option>
@@ -489,7 +525,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="cl-q" placeholder="Search client name, external ID..." oninput="debounceSearch('cl', () => loadClients())">
+            <input type="text" id="cl-q" name="search_cl_q_nofill" autocomplete="off" placeholder="Search client name, external ID..." oninput="debounceSearch('cl', () => loadClients())">
           </div>
           <select class="filter-select" id="cl-product-filter" onchange="loadClients()">
             <option value="">All Products</option>
@@ -516,7 +552,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="sc-q" placeholder="Search client, ID, job type..." oninput="debounceSearch('sc', () => loadSchedules())">
+            <input type="text" id="sc-q" name="search_sc_q_nofill" autocomplete="off" placeholder="Search client, ID, job type..." oninput="debounceSearch('sc', () => loadSchedules())">
           </div>
           <select class="filter-select" id="sc-product-filter" onchange="loadSchedules()">
             <option value="">All Products</option>
@@ -558,7 +594,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="toolbar">
           <div class="search-box">
             <span class="icon">🔍</span>
-            <input type="text" id="log-q" placeholder="Search client, job, error..." oninput="debounceSearch('log', () => loadLogs(1))">
+            <input type="text" id="log-q" name="search_log_q_nofill" autocomplete="off" placeholder="Search client, job, error..." oninput="debounceSearch('log', () => loadLogs(1))">
           </div>
           <select class="filter-select" id="log-status" onchange="loadLogs(1)">
             <option value="">All Statuses</option>
@@ -582,24 +618,312 @@ textarea{resize:vertical;min-height:80px}
       </div>
     </div>
 
-    <!-- ══ API KEYS ══ -->
-    <div class="page" id="page-apiclients">
-      <div class="card">
-        <div class="card-header">
-          <div><div class="card-title">API Keys</div><div class="card-subtitle">External projects that can create schedules via API</div></div>
-          <button class="btn btn-primary" onclick="openApiClientModal()">+ New API Key</button>
+
+
+    <!-- ══ EXTERNAL API PAYLOADS ══ -->
+    <div class="page" id="page-externalapi">
+      <div class="card" style="margin-bottom:20px; background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; border:none; padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:4px;">📡 External API Integration Payloads</h3>
+            <p style="font-size:13px; opacity:0.9;">Send HTTP POST requests to <code>/api/external/schedule</code> to create or update client schedules dynamically using single <code>scheduledTime</code> ("HH:mm").</p>
+          </div>
+          <a href="/external-tester.html" target="_blank" class="btn" style="background:#fff; color:#4338ca; font-weight:700; font-size:13px;">
+            🧪 Open Interactive Tester ↗
+          </a>
         </div>
-        <div class="card" style="background:#fffbeb;border-color:#fde68a;margin-bottom:16px">
-          <b>📡 External API Usage:</b><br>
-          <code style="font-size:12px">POST /api/external/schedule</code> with header <code>X-SaviSchedular-Key: YOUR_KEY</code><br>
-          <small style="color:#92400e">Body: { "productCode": "SAVISCHOOLS", "jobTypeCode": "WHATSAPP_ABSENT", "externalId": "1093", "scheduledHour": 10, "scheduledMinute": 0, "isActive": true }</small>
+      </div>
+
+      <!-- Master Full Parameter Reference -->
+      <div class="card" style="margin-bottom:24px; border-radius:12px; border-left:4px solid #6366f1;">
+        <div class="card-header" style="margin-bottom:12px;">
+          <div>
+            <div class="card-title" style="color:#1e293b; font-size:16px;">📚 Complete Parameter Reference (All Fields)</div>
+            <div class="card-subtitle">Every field supported by <code>POST /api/external/schedule</code></div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-fullspec')">📋 Copy Complete Spec JSON</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Client Name</th><th>API Key (masked)</th><th>Allowed Products</th><th>Status</th><th>Last Used</th><th>Actions</th></tr></thead>
-            <tbody id="apiclients-body"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
-          </table>
+        <pre style="background:#0f172a; color:#38bdf8; padding:16px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-fullspec">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "WHATSAPP_ABSENT",
+  "jobTypeName": "Send Absent WhatsApp Messages",
+  "defaultApiPath": "/api/messaging/send-absent",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "DAILY",
+  "scheduledTime": "10:30",
+  "scheduledDays": "MON,TUE,WED,THU,FRI",
+  "dayOfMonth": "15",
+  "monthOfYear": "3",
+  "multipleTimes": "06:00, 18:00",
+  "intervalValue": 2,
+  "intervalUnit": "HOURS",
+  "scheduleRules": "[{\"days\":[\"MON\"],\"time\":\"09:00\"},{\"days\":[\"WED\"],\"time\":\"14:30\"}]",
+  "payloadJson": "{\"templateId\": 102, \"smsGateway\": \"MSG91\", \"branchId\": \"MAIN\"}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:20px;">
+        
+        <!-- 1. DAILY -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">📅 1. Daily Frequency</div>
+              <div class="card-subtitle">Every day at a specific fixed time</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-daily')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-daily">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "WHATSAPP_ABSENT",
+  "jobTypeName": "Send Absent WhatsApp Messages",
+  "defaultApiPath": "/api/messaging/send-absent",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "DAILY",
+  "scheduledTime": "10:30",
+  "scheduledDays": null,
+  "dayOfMonth": null,
+  "monthOfYear": null,
+  "multipleTimes": null,
+  "intervalValue": null,
+  "intervalUnit": null,
+  "scheduleRules": null,
+  "payloadJson": "{\"templateId\": 102, \"smsGateway\": \"MSG91\", \"branchId\": \"MAIN\"}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
         </div>
+
+        <!-- 2. TWICE DAILY -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">🔁 2. Twice / Multiple Times Daily</div>
+              <div class="card-subtitle">Multiple times per day (e.g. 06:00 AM & 06:00 PM)</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-twice')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-twice">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "WHATSAPP_ABSENT",
+  "jobTypeName": "Send Absent WhatsApp Messages",
+  "defaultApiPath": "/api/messaging/send-absent",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "TWICE_DAILY",
+  "scheduledTime": "06:00",
+  "scheduledDays": null,
+  "dayOfMonth": null,
+  "monthOfYear": null,
+  "multipleTimes": "06:00, 18:00",
+  "intervalValue": null,
+  "intervalUnit": null,
+  "scheduleRules": null,
+  "payloadJson": "{\"batchSize\": 500, \"notifyParents\": true}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
+        </div>
+
+        <!-- 3. INTERVAL -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">⏱ 3. Recurring Interval / Hourly</div>
+              <div class="card-subtitle">Repeats every N hours or minutes (Health Checkup)</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-interval')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-interval">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "HEALTH_CHECK",
+  "jobTypeName": "System Health Checkup",
+  "defaultApiPath": "/api/system/health-check",
+  "httpMethod": "GET",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "INTERVAL",
+  "scheduledTime": null,
+  "scheduledDays": null,
+  "dayOfMonth": null,
+  "monthOfYear": null,
+  "multipleTimes": null,
+  "intervalValue": 2,
+  "intervalUnit": "HOURS",
+  "scheduleRules": null,
+  "payloadJson": null,
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": true
+}</pre>
+        </div>
+
+        <!-- 4. WEEKLY -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">📆 4. Weekly Frequency</div>
+              <div class="card-subtitle">Specific days of the week (e.g. MON, WED, FRI)</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-weekly')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-weekly">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "WEEKLY_SUMMARY",
+  "jobTypeName": "Weekly Performance Summary",
+  "defaultApiPath": "/api/reports/weekly-summary",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "WEEKLY",
+  "scheduledTime": "09:00",
+  "scheduledDays": "MON,WED,FRI",
+  "dayOfMonth": null,
+  "monthOfYear": null,
+  "multipleTimes": null,
+  "intervalValue": null,
+  "intervalUnit": null,
+  "scheduleRules": null,
+  "payloadJson": "{\"reportFormat\": \"PDF\", \"sendEmail\": true}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
+        </div>
+
+        <!-- 5. MONTHLY -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">🗓 5. Monthly Frequency</div>
+              <div class="card-subtitle">Specific day of every month (e.g. 15th of month)</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-monthly')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-monthly">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "FEE_REMINDER",
+  "jobTypeName": "Monthly Fee Collection Reminder",
+  "defaultApiPath": "/api/messaging/fee-reminder",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "MONTHLY",
+  "scheduledTime": "11:00",
+  "scheduledDays": null,
+  "dayOfMonth": "15",
+  "monthOfYear": null,
+  "multipleTimes": null,
+  "intervalValue": null,
+  "intervalUnit": null,
+  "scheduleRules": null,
+  "payloadJson": "{\"dueDays\": 5, \"includeLateFine\": true}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
+        </div>
+
+        <!-- 6. YEARLY -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">🎯 6. Yearly Frequency</div>
+              <div class="card-subtitle">Specific month & day once a year (e.g. 15th March)</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-yearly')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-yearly">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "ANNUAL_REPORT",
+  "jobTypeName": "Annual Audit Report Generator",
+  "defaultApiPath": "/api/reports/annual-audit",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "YEARLY",
+  "scheduledTime": "12:00",
+  "scheduledDays": null,
+  "dayOfMonth": "15",
+  "monthOfYear": "3",
+  "multipleTimes": null,
+  "intervalValue": null,
+  "intervalUnit": null,
+  "scheduleRules": null,
+  "payloadJson": "{\"financialYear\": \"2025-2026\", \"exportExcel\": true}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
+        </div>
+
+        <!-- 7. MULTI-SLOT -->
+        <div class="card" style="border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div>
+              <div class="card-title" style="color:#1e293b; font-size:15px;">🎛 7. Multi-Slot (Day-wise Times)</div>
+              <div class="card-subtitle">Custom day-wise execution time rules</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyJsonText('json-multislot')">📋 Copy JSON</button>
+          </div>
+          <pre style="background:#0f172a; color:#38bdf8; padding:14px; border-radius:8px; font-size:12px; font-family:monospace; overflow-x:auto;" id="json-multislot">{
+  "productCode": "SAVISCHOOLS",
+  "productName": "SaviSchool ERP",
+  "baseUrl": "http://localhost:44548",
+  "customBaseUrl": "http://localhost:44548",
+  "jobTypeCode": "FLEXI_NOTIFY",
+  "jobTypeName": "Flexible Multi-Slot Notification",
+  "defaultApiPath": "/api/messaging/send-flexi",
+  "httpMethod": "POST",
+  "externalId": "461",
+  "clientName": "St. Xavier High School",
+  "frequencyType": "MULTI_SLOT",
+  "scheduledTime": "09:00",
+  "scheduledDays": null,
+  "dayOfMonth": null,
+  "monthOfYear": null,
+  "multipleTimes": null,
+  "intervalValue": null,
+  "intervalUnit": null,
+  "scheduleRules": "[{\"days\":[\"MON\"],\"time\":\"09:00\"},{\"days\":[\"WED\"],\"time\":\"14:30\"},{\"days\":[\"FRI\"],\"time\":\"18:00\"}]",
+  "payloadJson": "{\"channel\": \"WHATSAPP_AND_SMS\"}",
+  "timeZone": "India Standard Time",
+  "isActive": true,
+  "runOnHolidays": false
+}</pre>
+        </div>
+
       </div>
     </div>
 
@@ -621,6 +945,29 @@ textarea{resize:vertical;min-height:80px}
 
 <!-- ══ TOAST CONTAINER ══ -->
 <div class="toast-container" id="toasts"></div>
+
+<!-- ══ GLOBAL LOADER ══ -->
+<div id="global-loader" style="
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(15,23,42,0.45); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center; flex-direction:column; gap:16px;
+">
+  <div style="
+    background:#fff; border-radius:16px; padding:28px 36px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25); display:flex;
+    align-items:center; gap:16px; min-width:200px;
+  ">
+    <div style="
+      width:28px; height:28px; border-radius:50%;
+      border:3px solid #e2e8f0; border-top-color:#6366f1;
+      animation:spin 0.7s linear infinite; flex-shrink:0;
+    "></div>
+    <div>
+      <div id="loader-text" style="font-weight:600; font-size:14px; color:#1e293b;">Processing...</div>
+      <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Please wait</div>
+    </div>
+  </div>
+</div>
 
 <!-- ══ MODALS ══ -->
 
@@ -853,8 +1200,9 @@ textarea{resize:vertical;min-height:80px}
               <option value="WEEKLY">Weekly (Select Days of Week)</option>
               <option value="MONTHLY">Monthly (Specific Day of Month)</option>
               <option value="YEARLY">Yearly / Specific Month & Date (e.g. 15th March)</option>
+              <option value="TWICE_DAILY">Twice / Multiple Times Daily (e.g. 06:00 AM & 06:00 PM)</option>
+              <option value="INTERVAL">Recurring Interval / Hourly (Health Checkup)</option>
               <option value="MULTI_SLOT">Multi-Slot (Day-wise Different Times)</option>
-              <option value="CRON">Custom Cron Expression</option>
             </select>
           </div>
           <div class="form-group" id="adm-time-group" style="flex:1;">
@@ -910,6 +1258,37 @@ textarea{resize:vertical;min-height:80px}
           </div>
         </div>
 
+        <!-- Twice / Multiple Times Panel -->
+        <div id="adm-multitimes-panel" style="display:none; margin-top:12px; background:#fff; border:1.5px solid #cbd5e1; border-radius:10px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <label style="font-size:12px; font-weight:700; color:#334155; margin:0;">⏰ Execution Time Slots *</label>
+            <button type="button" onclick="addAdminTimeSlot()" class="btn btn-secondary btn-sm" style="padding:5px 12px; font-size:12px; font-weight:600; background:#ede9fe; color:#6366f1; border:1.5px solid #c4b5fd;">
+              ➕ Add Time Slot
+            </button>
+          </div>
+          <div id="adm-multitimes-container">
+            <!-- Dynamic time slots will be added here -->
+          </div>
+          <small style="color:var(--text-muted); margin-top:6px; display:block;">💡 Each time slot will fire the job independently (e.g. 06:00 AM and 06:00 PM)</small>
+        </div>
+
+        <!-- Recurring Interval / Hourly Health Checkup Panel -->
+        <div id="adm-interval-panel" style="display:none; margin-top:12px;">
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>Repeat Every *</label>
+              <input type="number" id="sc-interval-val" min="1" max="59" value="2" style="height:38px; border-radius:8px; border:1.5px solid #cbd5e1; padding:0 12px;">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>Time Unit *</label>
+              <select id="sc-interval-unit" class="filter-select" style="width:100%; height:38px;">
+                <option value="HOURS" selected>Hours (घंटे)</option>
+                <option value="MINUTES">Minutes (मिनट)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <!-- Multi-Slot Rules Panel -->
         <div id="adm-multislot-panel" style="display:none; margin-top:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -923,12 +1302,7 @@ textarea{resize:vertical;min-height:80px}
           </div>
         </div>
 
-        <!-- Custom Cron Panel -->
-        <div id="adm-cron-panel" style="display:none; margin-top:12px;">
-          <label for="sc-cron-expr">Custom Cron Expression</label>
-          <input type="text" id="sc-cron-expr" placeholder="30 10 * * 1,4" style="height:38px; border-radius:8px; border:1.5px solid #cbd5e1; padding:0 12px;">
-          <small style="color:var(--text-muted); margin-top:4px; display:block;">Format: min hr day-of-month month day-of-week (e.g. 30 10 * * 1,4)</small>
-        </div>
+
       </div>
       <div class="form-group">
         <label>Timezone</label>
@@ -939,23 +1313,9 @@ textarea{resize:vertical;min-height:80px}
           <option value="US Pacific Standard Time">US Pacific</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Payload JSON (optional extra params)</label>
-        <textarea id="sc-payload" placeholder='{"companyId":"1","customParam":"value"}'></textarea>
-        <small style="color:var(--text-muted)">Note: externalId, targetId and productCode are auto-injected.</small>
-      </div>
-      <div class="form-group">
-        <label>Custom API Path (overrides job type default)</label>
-        <input type="text" id="sc-apipath" placeholder="Leave blank to use job type default">
-      </div>
-      <div class="form-group">
-        <label>Custom API Token (overrides product token)</label>
-        <input type="password" id="sc-token" placeholder="Leave blank to use product token">
-      </div>
-      <div class="form-group">
-        <label>Misfire Threshold (minutes)</label>
-        <input type="number" id="sc-misfire" value="15" min="0">
-      </div>
+
+
+
       <div style="display:flex;gap:20px;margin-top:4px">
         <div class="form-group">
           <div class="toggle-wrap">
@@ -978,43 +1338,7 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 
-<!-- API Client Modal -->
-<div class="modal-overlay" id="modal-apiclient">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="apiclient-modal-title">New API Client</span>
-      <button class="modal-close" onclick="closeModal('modal-apiclient')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="ac-id">
-      <div class="form-group">
-        <label>Client Name *</label>
-        <input type="text" id="ac-name" placeholder="SaviSchools Project">
-      </div>
-      <div class="form-group">
-        <label>Allowed Product IDs (comma-separated, blank = all)</label>
-        <input type="text" id="ac-products" placeholder="1,2,3">
-      </div>
-      <div class="form-group">
-        <div class="toggle-wrap">
-          <label class="toggle"><input type="checkbox" id="ac-active" checked><span class="toggle-slider"></span></label>
-          <span>Active</span>
-        </div>
-      </div>
-      <div id="new-key-display" style="display:none">
-        <div style="background:#d1fae5;border:1px solid #a7f3d0;border-radius:8px;padding:12px;margin-top:12px">
-          <b style="color:#065f46">✅ API Key Generated — Copy it now, it won't be shown again:</b>
-          <div class="api-key-box" id="new-key-value"></div>
-          <button class="btn btn-success btn-sm" onclick="copyKey()">📋 Copy Key</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-apiclient')">Close</button>
-      <button class="btn btn-primary" id="ac-save-btn" onclick="saveApiClient()">Generate API Key</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Log Detail Modal -->
 <div class="modal-overlay" id="modal-log">
@@ -1078,6 +1402,25 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- Professional Custom Confirmation & Prompt Modal -->
+<div class="modal-overlay" id="modal-confirm" style="z-index:10000;">
+  <div class="modal" style="max-width:440px; text-align:center; padding:28px 24px; border-radius:16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+    <div id="confirm-icon" style="font-size:48px; margin-bottom:12px; line-height:1;">⚠️</div>
+    <h3 id="confirm-title" style="font-size:18px; font-weight:700; color:#0f172a; margin-bottom:8px;">Are you sure?</h3>
+    <p id="confirm-msg" style="font-size:13.5px; color:#64748b; margin-bottom:20px; line-height:1.5;">This action cannot be undone.</p>
+    
+    <div id="confirm-input-group" style="display:none; margin-bottom:20px; text-align:left;">
+      <label style="font-size:12px; font-weight:600; color:#334155; display:block; margin-bottom:6px;">Logs older than (days):</label>
+      <input type="number" id="confirm-input" class="form-control" style="width:100%; height:40px; border-radius:8px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; outline:none;">
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:12px;">
+      <button class="btn btn-secondary" id="confirm-btn-no" style="min-width:110px; border-radius:8px; font-weight:600;">Cancel</button>
+      <button class="btn btn-danger" id="confirm-btn-yes" style="min-width:130px; border-radius:8px; font-weight:600;">Confirm Action</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -1112,8 +1455,58 @@ function checkAuthSession() {
   }
 }
 
-function handleLogout() {
-  if (!confirm('Are you sure you want to log out?')) return;
+function confirmAction({ title = 'Confirm Action', message = 'Are you sure?', icon = '⚠️', confirmText = 'Confirm', confirmClass = 'btn-danger', inputType = null, inputValue = '' }) {
+  return new Promise((resolve) => {
+    document.getElementById('confirm-icon').textContent = icon;
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = message;
+    
+    const inputGroup = document.getElementById('confirm-input-group');
+    const inputEl = document.getElementById('confirm-input');
+    if (inputType) {
+      inputGroup.style.display = 'block';
+      inputEl.type = inputType;
+      inputEl.value = inputValue;
+    } else {
+      inputGroup.style.display = 'none';
+    }
+
+    const yesBtn = document.getElementById('confirm-btn-yes');
+    const noBtn  = document.getElementById('confirm-btn-no');
+
+    yesBtn.textContent = confirmText;
+    yesBtn.className = `btn ${confirmClass}`;
+
+    const cleanup = () => {
+      closeModal('modal-confirm');
+      yesBtn.onclick = null;
+      noBtn.onclick  = null;
+    };
+
+    yesBtn.onclick = () => {
+      const val = inputType ? inputEl.value : true;
+      cleanup();
+      resolve(val);
+    };
+
+    noBtn.onclick = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    openModal('modal-confirm');
+  });
+}
+
+async function handleLogout() {
+  const ok = await confirmAction({
+    title: 'Confirm Logout',
+    message: 'Are you sure you want to log out of SaviSchedular Admin Console?',
+    icon: '🚪',
+    confirmText: '🚪 Logout',
+    confirmClass: 'btn-secondary'
+  });
+  if (!ok) return;
   localStorage.removeItem('savi_schedular_session');
   sessionStorage.removeItem('savi_schedular_session');
   window.location.href = '/login.html';
@@ -1141,7 +1534,7 @@ const pageTitles = {
   schedules: ['Schedules', 'Job schedule instances per client'],
   users:     ['Admin Users', 'Manage login facility accounts, roles, and administrative access'],
   logs:      ['Execution Logs', 'Full history of all job runs'],
-  apiclients:['API Keys', 'External project API key management'],
+  externalapi:['External API Payloads', 'Sample JSON payloads for all schedule frequency types'],
   settings:  ['Global Settings', 'SMTP, notifications and system settings'],
 };
 
@@ -1155,38 +1548,66 @@ function showPage(name) {
   document.getElementById('page-title').textContent  = title;
   document.getElementById('page-subtitle').textContent = sub;
   currentPage = name;
-  if (name === 'dashboard')  loadDashboard(1);
+  if (name === 'dashboard') {
+    const dashQEl = document.getElementById('dash-q');
+    if (dashQEl) dashQEl.value = '';
+    loadDashboard(1);
+  }
   if (name === 'products')   loadProductsTable();
   if (name === 'jobtypes')   loadJobTypes();
   if (name === 'clients')    loadClients();
   if (name === 'schedules')  loadSchedules();
   if (name === 'users')      loadUsersTable();
   if (name === 'logs')       loadLogs(1);
-  if (name === 'apiclients') loadApiClients();
   if (name === 'settings')   loadSettings();
 }
 
 function refreshCurrentPage() { showPage(currentPage); }
 
 // ═══════════════════════════════════════════════════════════════
+// GLOBAL LOADER
+// ═══════════════════════════════════════════════════════════════
+let _loaderCount = 0;
+function showLoader(text = 'Processing...') {
+  _loaderCount++;
+  const el = document.getElementById('global-loader');
+  const txt = document.getElementById('loader-text');
+  if (el)  { el.style.display = 'flex'; }
+  if (txt) { txt.textContent = text; }
+}
+function hideLoader() {
+  _loaderCount = Math.max(0, _loaderCount - 1);
+  if (_loaderCount === 0) {
+    const el = document.getElementById('global-loader');
+    if (el) el.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // API HELPERS
 // ═══════════════════════════════════════════════════════════════
 async function api(method, url, body) {
-  const session = checkAuthSession();
-  const headers = { 'Content-Type': 'application/json' };
-  if (session && session.token) {
-    headers['Authorization'] = 'Bearer ' + session.token;
+  const isWrite = method !== 'GET';
+  if (isWrite) showLoader(method === 'DELETE' ? 'Deleting...' : 'Saving...');
+  try {
+    const session = checkAuthSession();
+    const headers = { 'Content-Type': 'application/json' };
+    if (session && session.token) {
+      headers['Authorization'] = 'Bearer ' + session.token;
+    }
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(url, opts);
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401) {
+      handleLogout();
+      throw new Error('Session expired. Please login again.');
+    }
+    if (!r.ok) throw new Error(data.error || data.message || `HTTP ${r.status}`);
+    return data;
+  } finally {
+    if (isWrite) hideLoader();
   }
-  const opts = { method, headers };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
-  const data = await r.json().catch(() => ({}));
-  if (r.status === 401) {
-    handleLogout();
-    throw new Error('Session expired. Please login again.');
-  }
-  if (!r.ok) throw new Error(data.error || data.message || `HTTP ${r.status}`);
-  return data;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1322,8 +1743,15 @@ async function saveProduct() {
 }
 
 async function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  try { await api('DELETE', `/api/products/${id}`); toast('Deleted!'); loadProductsTable(); }
+  const ok = await confirmAction({
+    title: 'Delete Product',
+    message: 'Are you sure you want to delete this product? All associated job types and schedules will be affected.',
+    icon: '📦',
+    confirmText: '🗑️ Delete Product',
+    confirmClass: 'btn-danger'
+  });
+  if (!ok) return;
+  try { await api('DELETE', `/api/products/${id}`); toast('Product deleted!'); loadProductsTable(); }
   catch(e) { toast(e.message,'error'); }
 }
 
@@ -1406,8 +1834,15 @@ async function saveJobType() {
 }
 
 async function deleteJobType(id) {
-  if (!confirm('Delete this job type?')) return;
-  try { await api('DELETE', `/api/jobtypes/${id}`); toast('Deleted!'); loadJobTypes(); }
+  const ok = await confirmAction({
+    title: 'Delete Job Type',
+    message: 'Are you sure you want to delete this job type?',
+    icon: '⚙️',
+    confirmText: '🗑️ Delete Job Type',
+    confirmClass: 'btn-danger'
+  });
+  if (!ok) return;
+  try { await api('DELETE', `/api/jobtypes/${id}`); toast('Job Type deleted!'); loadJobTypes(); }
   catch(e) { toast(e.message,'error'); }
 }
 
@@ -1469,8 +1904,15 @@ async function saveClient() {
 }
 
 async function deleteClient(id) {
-  if (!confirm('Delete this client?')) return;
-  try { await api('DELETE', `/api/clients/${id}`); toast('Deleted!'); loadClients(); }
+  const ok = await confirmAction({
+    title: 'Delete Client',
+    message: 'Are you sure you want to delete this client registration?',
+    icon: '👥',
+    confirmText: '🗑️ Delete Client',
+    confirmClass: 'btn-danger'
+  });
+  if (!ok) return;
+  try { await api('DELETE', `/api/clients/${id}`); toast('Client deleted!'); loadClients(); }
   catch(e) { toast(e.message,'error'); }
 }
 
@@ -1514,7 +1956,7 @@ async function loadSchedules() {
         <td><b>${s.clientName}</b></td>
         <td><code>${s.externalId}</code></td>
         <td>${s.jobTypeName}</td>
-        <td><b>${s.scheduledTime || (String(s.scheduledHour).padStart(2,'0')+':'+String(s.scheduledMinute).padStart(2,'0'))}</b> <small style="font-size:10px;color:#6366f1;display:block;">${s.frequencyType || 'DAILY'}</small></td>
+        <td><b>${s.frequencyType === 'TWICE_DAILY' ? (s.multipleTimes || '06:00, 18:00') : (s.frequencyType === 'INTERVAL' ? 'Every ' + (s.intervalValue||2) + ' ' + (s.intervalUnit||'HOURS').toLowerCase() : (s.scheduledTime || (String(s.scheduledHour).padStart(2,'0')+':'+String(s.scheduledMinute).padStart(2,'0'))))}</b> <small style="font-size:10px;color:#6366f1;display:block;">${renderFreqLabel(s.frequencyType)}</small></td>
         <td><span class="badge badge-skipped">${s.timeZone?.replace(' Standard Time','')}</span></td>
         <td>${renderLastStatusBadge(s.lastStatus, s.lastRunAt)}</td>
         <td>${s.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
@@ -1534,6 +1976,20 @@ function renderLastStatusBadge(status, lastRunAt) {
   if (status === 'FAILED')  return `<span class="badge badge-error">✗ FAILED</span><br><small style="font-size:10px;color:var(--error)">${formatDate(lastRunAt)}</small>`;
   if (status === 'SKIPPED') return `<span class="badge badge-skipped">SKIPPED</span>`;
   return `<span style="color:var(--text-muted);font-size:11px">Never Run</span>`;
+}
+
+function renderFreqLabel(ft) {
+  switch((ft||'DAILY').toUpperCase()) {
+    case 'DAILY':       return '📅 Daily';
+    case 'WEEKLY':      return '📆 Weekly';
+    case 'MONTHLY':     return '🗓 Monthly';
+    case 'YEARLY':      return '🎯 Yearly';
+    case 'TWICE_DAILY': return '🔁 Twice Daily';
+    case 'INTERVAL':    return '⏱ Interval';
+    case 'MULTI_SLOT':  return '🎛 Multi-Slot';
+    case 'CRON':        return '⚙ Custom Cron';
+    default:            return ft || 'DAILY';
+  }
 }
 
 async function loadClientsForSchedule() {
@@ -1579,11 +2035,12 @@ function onAdminFreqTypeChange() {
   document.getElementById('adm-weekly-panel').style.display = 'none';
   document.getElementById('adm-monthly-panel').style.display = 'none';
   document.getElementById('adm-yearly-panel').style.display = 'none';
+  document.getElementById('adm-multitimes-panel').style.display = 'none';
+  document.getElementById('adm-interval-panel').style.display = 'none';
   document.getElementById('adm-multislot-panel').style.display = 'none';
-  document.getElementById('adm-cron-panel').style.display = 'none';
 
   const timeGroup = document.getElementById('adm-time-group');
-  if (fType === 'MULTI_SLOT' || fType === 'CRON') {
+  if (fType === 'MULTI_SLOT' || fType === 'TWICE_DAILY' || fType === 'INTERVAL') {
     if (timeGroup) timeGroup.style.display = 'none';
   } else {
     if (timeGroup) timeGroup.style.display = 'block';
@@ -1595,14 +2052,22 @@ function onAdminFreqTypeChange() {
     document.getElementById('adm-monthly-panel').style.display = 'block';
   } else if (fType === 'YEARLY') {
     document.getElementById('adm-yearly-panel').style.display = 'block';
+  } else if (fType === 'TWICE_DAILY') {
+    document.getElementById('adm-multitimes-panel').style.display = 'block';
+    // Auto-add default 2 slots only if container is empty
+    const slotContainer = document.getElementById('adm-multitimes-container');
+    if (slotContainer && slotContainer.querySelectorAll('.adm-time-slot').length === 0) {
+      addAdminTimeSlot('06:00');
+      addAdminTimeSlot('18:00');
+    }
+  } else if (fType === 'INTERVAL') {
+    document.getElementById('adm-interval-panel').style.display = 'block';
   } else if (fType === 'MULTI_SLOT') {
     document.getElementById('adm-multislot-panel').style.display = 'block';
     if (document.querySelectorAll('#adm-rules-container .adm-rule-row').length === 0) {
       addAdminMultiSlotRow('MON', '10:00');
       addAdminMultiSlotRow('TUE', '11:00');
     }
-  } else if (fType === 'CRON') {
-    document.getElementById('adm-cron-panel').style.display = 'block';
   }
 }
 
@@ -1631,6 +2096,25 @@ function addAdminMultiSlotRow(defaultDay = 'MON', defaultTime = '10:00') {
   container.appendChild(div);
 }
 
+function addAdminTimeSlot(defaultTime = '06:00') {
+  const container = document.getElementById('adm-multitimes-container');
+  const slotCount = container.querySelectorAll('.adm-time-slot').length;
+  const defaultTimes = ['06:00', '18:00', '12:00', '08:00', '20:00'];
+  const time = defaultTime || defaultTimes[slotCount] || '10:00';
+  const labels = ['🌅 Morning', '🌆 Evening', '🕛 Noon', '🌤 Early Morning', '🌃 Night'];
+  const label = labels[slotCount] || `⏰ Slot ${slotCount + 1}`;
+
+  const div = document.createElement('div');
+  div.className = 'adm-time-slot';
+  div.style.cssText = 'display:flex; gap:10px; align-items:center; margin-bottom:8px;';
+  div.innerHTML = `
+    <div style="min-width:110px; font-size:12px; font-weight:600; color:#6366f1;">${label}</div>
+    <input type="time" class="adm-slot-time" value="${time}" style="flex:1; height:38px; border-radius:8px; border:1.5px solid #a5b4fc; padding:0 12px; font-size:14px; font-family:inherit; color:#1e293b; background:#fafafa; outline:none;">
+    <button type="button" onclick="this.closest('.adm-time-slot').remove()" style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca; border-radius:6px; width:36px; height:36px; font-size:15px; cursor:pointer;" title="Remove">✕</button>
+  `;
+  container.appendChild(div);
+}
+
 async function openScheduleModal(s) {
   try {
     if (!products || products.length === 0) {
@@ -1652,6 +2136,21 @@ async function openScheduleModal(s) {
   if (document.getElementById('sc-day-month')) document.getElementById('sc-day-month').value = s?.dayOfMonth || '';
   if (document.getElementById('sc-month-year')) document.getElementById('sc-month-year').value = s?.monthOfYear || '1';
   if (document.getElementById('sc-yearly-day')) document.getElementById('sc-yearly-day').value = (s?.frequencyType === 'YEARLY' ? s?.dayOfMonth : '') || '15';
+  // Populate TWICE_DAILY time slots from existing multipleTimes
+  const slotContainer = document.getElementById('adm-multitimes-container');
+  if (slotContainer) {
+    slotContainer.innerHTML = '';
+    const timesStr = s?.multipleTimes || '06:00, 18:00';
+    const timeParts = timesStr.split(/[,;]/).map(t => t.trim()).filter(t => t);
+    if (timeParts.length > 0) {
+      timeParts.forEach(t => addAdminTimeSlot(t));
+    } else {
+      addAdminTimeSlot('06:00');
+      addAdminTimeSlot('18:00');
+    }
+  }
+  if (document.getElementById('sc-interval-val')) document.getElementById('sc-interval-val').value = s?.intervalValue || 2;
+  if (document.getElementById('sc-interval-unit')) document.getElementById('sc-interval-unit').value = s?.intervalUnit || 'HOURS';
   if (document.getElementById('sc-cron-expr')) document.getElementById('sc-cron-expr').value = s?.cronExpression || '';
 
   document.querySelectorAll('.adm-day-chk').forEach(chk => {
@@ -1687,7 +2186,6 @@ async function openScheduleModal(s) {
 
   openModal('modal-schedule');
 
-  // Populate clients and job types automatically for selected product
   if (targetProductId) {
     await Promise.all([
       loadClientsForSchedule(),
@@ -1703,26 +2201,66 @@ async function openScheduleModal(s) {
 function editSchedule(s) { openScheduleModal(s); }
 
 async function saveSchedule() {
+  const timeVal = document.getElementById('sc-time') ? document.getElementById('sc-time').value || '10:30' : '10:30';
+  const parts = timeVal.split(':');
+  const hour = parseInt(parts[0], 10) || 10;
+  const minute = parseInt(parts[1], 10) || 30;
+  const freqType = document.getElementById('sc-freq-type') ? document.getElementById('sc-freq-type').value || 'DAILY' : 'DAILY';
+
+  const selectedDays = Array.from(document.querySelectorAll('.adm-day-chk:checked')).map(c => c.value);
+
+  const multiRules = [];
+  if (freqType === 'MULTI_SLOT') {
+    document.querySelectorAll('#adm-rules-container .adm-rule-row').forEach(row => {
+      const day = row.querySelector('.adm-rule-day').value;
+      const time = row.querySelector('.adm-rule-time').value || '10:00';
+      if (day) multiRules.push({ days: [day], time: time });
+    });
+  }
+
+  let dayOfMonthVal = document.getElementById('sc-day-month') ? document.getElementById('sc-day-month').value.trim() : undefined;
+  let monthOfYearVal = undefined;
+
+  if (freqType === 'YEARLY') {
+    monthOfYearVal = document.getElementById('sc-month-year') ? document.getElementById('sc-month-year').value : undefined;
+    dayOfMonthVal = document.getElementById('sc-yearly-day') ? document.getElementById('sc-yearly-day').value || '15' : '15';
+  }
+
   const body = {
     instanceId: +document.getElementById('sc-id').value,
     clientId: +document.getElementById('sc-client').value,
     productId: +document.getElementById('sc-product').value,
     jobTypeId: +document.getElementById('sc-jobtype').value,
-    scheduledHour: +document.getElementById('sc-hour').value,
-    scheduledMinute: +document.getElementById('sc-minute').value,
-    timeZone: document.getElementById('sc-tz').value,
-    payloadJson: document.getElementById('sc-payload').value.trim()||null,
-    customApiPath: document.getElementById('sc-apipath').value.trim()||null,
-    customApiToken: document.getElementById('sc-token').value.trim()||'••••••••',
-    misfireThresholdMinutes: +document.getElementById('sc-misfire').value||15,
-    isActive: document.getElementById('sc-active').checked,
-    runOnHolidays: document.getElementById('sc-holidays').checked,
+    scheduledTime: timeVal,
+    scheduledHour: hour,
+    scheduledMinute: minute,
+    frequencyType: freqType,
+    scheduledDays: selectedDays.length > 0 ? selectedDays.join(',') : undefined,
+    dayOfMonth: dayOfMonthVal || undefined,
+    monthOfYear: monthOfYearVal,
+    multipleTimes: freqType === 'TWICE_DAILY' ? (() => {
+      const slots = Array.from(document.querySelectorAll('#adm-multitimes-container .adm-slot-time'))
+        .map(inp => inp.value).filter(t => t);
+      return slots.length > 0 ? slots.join(', ') : '06:00, 18:00';
+    })() : undefined,
+    intervalValue: freqType === 'INTERVAL' ? (document.getElementById('sc-interval-val') ? parseInt(document.getElementById('sc-interval-val').value, 10) || 2 : 2) : undefined,
+    intervalUnit: freqType === 'INTERVAL' ? (document.getElementById('sc-interval-unit') ? document.getElementById('sc-interval-unit').value || 'HOURS' : 'HOURS') : undefined,
+    scheduleRules: multiRules.length > 0 ? JSON.stringify(multiRules) : undefined,
+    cronExpression: document.getElementById('sc-cron-expr') ? document.getElementById('sc-cron-expr').value.trim() || undefined : undefined,
+    timeZone: document.getElementById('sc-tz') ? document.getElementById('sc-tz').value : 'India Standard Time',
+    payloadJson: document.getElementById('sc-payload') ? document.getElementById('sc-payload').value.trim() || null : null,
+    customApiPath: document.getElementById('sc-apipath') ? document.getElementById('sc-apipath').value.trim() || null : null,
+    customApiToken: document.getElementById('sc-token') ? document.getElementById('sc-token').value.trim() || '••••••••' : '••••••••',
+    misfireThresholdMinutes: document.getElementById('sc-misfire') ? +document.getElementById('sc-misfire').value || 15 : 15,
+    isActive: document.getElementById('sc-active') ? document.getElementById('sc-active').checked : true,
+    runOnHolidays: document.getElementById('sc-holidays') ? document.getElementById('sc-holidays').checked : false,
   };
-  if (!body.clientId || !body.jobTypeId) return toast('Client and Job Type are required','error');
+
+  if (!body.clientId || !body.jobTypeId) return toast('Client and Job Type are required', 'error');
   try {
     await api('POST', '/api/scheduler/save', body);
     toast('Schedule saved!'); closeModal('modal-schedule'); loadSchedules();
-  } catch(e) { toast(e.message,'error'); }
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function triggerSchedule(instanceId) {
@@ -1747,43 +2285,46 @@ async function triggerSchedule(instanceId) {
 }
 
 async function deleteSchedule(id) {
-  if (!confirm('Delete this schedule?')) return;
-  try { await api('DELETE', `/api/scheduler/${id}`); toast('Deleted!'); loadSchedules(); }
+  const ok = await confirmAction({
+    title: 'Delete Schedule',
+    message: 'Are you sure you want to delete this schedule instance?',
+    icon: '⏰',
+    confirmText: '🗑️ Delete Schedule',
+    confirmClass: 'btn-danger'
+  });
+  if (!ok) return;
+  try { await api('DELETE', `/api/scheduler/${id}`); toast('Schedule deleted!'); loadSchedules(); }
   catch(e) { toast(e.message,'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ADMIN USERS MANAGEMENT
-// ═══════════════════════════════════════════════════════════════
 async function loadUsersTable() {
   try {
     const data = await api('GET', '/api/users');
     const rows = data.map((u,i) => `
       <tr>
         <td>${i+1}</td>
-        <td><b>${u.username}</b></td>
-        <td>${u.fullName}</td>
-        <td>${u.email||'—'}</td>
-        <td><span class="badge ${u.role==='SuperAdmin'?'badge-running':'badge-skipped'}">${u.role}</span></td>
-        <td>${u.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
-        <td style="font-size:12px;color:#64748b">${u.lastLoginAt?new Date(u.lastLoginAt).toLocaleString():'Never'}</td>
+        <td><b>${u.username || u.Username}</b></td>
+        <td>${u.fullName || u.FullName}</td>
+        <td>${u.email || u.Email ||'—'}</td>
+        <td><span class="badge ${(u.role||u.Role)==='SuperAdmin'?'badge-running':'badge-skipped'}">${u.role||u.Role}</span></td>
+        <td>${(u.isActive??u.IsActive)?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td style="font-size:12px;color:#64748b">${(u.lastLoginAt||u.LastLoginAt)?new Date(u.lastLoginAt||u.LastLoginAt).toLocaleString():'Never'}</td>
         <td class="actions-cell">
-          <button class="btn btn-secondary btn-sm" onclick="editUser(${u.userId},${JSON.stringify(u).replace(/"/g,'&quot;')})">✏</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.userId})">🗑</button>
+          <button class="btn btn-secondary btn-sm" onclick="editUser(${u.userId||u.UserId},${JSON.stringify(u).replace(/"/g,'&quot;')})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.userId||u.UserId})">🗑</button>
         </td>
       </tr>`).join('');
     document.getElementById('users-body').innerHTML = rows || emptyRow(8, 'No admin users');
   } catch(e) { document.getElementById('users-body').innerHTML = emptyRow(8, e.message, true); }
 }
-
 function openUserModal(u) {
-  document.getElementById('u-id').value = u?.userId||0;
-  document.getElementById('u-username').value = u?.username||'';
-  document.getElementById('u-fullname').value = u?.fullName||'';
-  document.getElementById('u-email').value = u?.email||'';
-  document.getElementById('u-role').value = u?.role||'Admin';
+  document.getElementById('u-id').value = u?.userId || u?.UserId || 0;
+  document.getElementById('u-username').value = u?.username || u?.Username || '';
+  document.getElementById('u-fullname').value = u?.fullName || u?.FullName || '';
+  document.getElementById('u-email').value = u?.email || u?.Email || '';
+  document.getElementById('u-role').value = u?.role || u?.Role || 'Admin';
   document.getElementById('u-password').value = '';
-  document.getElementById('u-active').checked = u ? u.isActive : true;
+  document.getElementById('u-active').checked = u ? (u.isActive ?? u.IsActive ?? true) : true;
   document.getElementById('user-modal-title').textContent = u ? 'Edit Admin User' : 'Add Admin User';
   document.getElementById('u-pwd-hint').textContent = u ? '(leave blank to keep existing)' : '(required for new user)';
   openModal('modal-user');
@@ -1813,7 +2354,14 @@ async function saveUser() {
 }
 
 async function deleteUser(id) {
-  if (!confirm('Deactivate this admin user account?')) return;
+  const ok = await confirmAction({
+    title: 'Deactivate Admin User',
+    message: 'Are you sure you want to deactivate this admin user account?',
+    icon: '🔐',
+    confirmText: '🔒 Deactivate User',
+    confirmClass: 'btn-danger'
+  });
+  if (!ok) return;
   try {
     await api('DELETE', `/api/users/${id}`);
     toast('User deactivated!');
@@ -1825,43 +2373,76 @@ async function deleteUser(id) {
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 async function loadDashboard(page) {
+  page = page || dashPage || 1;
   dashPage = page;
-  const q       = document.getElementById('dash-q')?.value;
+
+  const dashQEl = document.getElementById('dash-q');
+  if (dashQEl && (dashQEl.value.toLowerCase() === 'admin' || dashQEl.value.toLowerCase() === 'superadmin')) {
+    dashQEl.value = '';
+  }
+
+  const q       = dashQEl?.value;
   const status  = document.getElementById('dash-status')?.value;
   const pid     = document.getElementById('dash-product')?.value;
+  
+  const tbody = document.getElementById('dash-logs-body');
+  if (tbody && (!tbody.children || tbody.children.length === 0 || tbody.querySelector('.loading-row'))) {
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr>';
+  }
+
   let url = `/api/scheduler/dashboard?page=${page}&pageSize=10`;
   if (q)      url += `&q=${encodeURIComponent(q)}`;
   if (status) url += `&status=${status}`;
   if (pid)    url += `&productId=${pid}`;
+
   try {
     const d = await api('GET', url);
-    // Stats
+
+    // Stats — handle both camelCase and PascalCase
     const st = d.stats || d.Stats || {};
-    document.getElementById('s-products').textContent  = st.totalProducts  ?? st.TotalProducts  ?? 0;
-    document.getElementById('s-clients').textContent   = st.totalClients   ?? st.TotalClients   ?? 0;
-    document.getElementById('s-schedules').textContent = st.activeSchedules?? st.ActiveSchedules?? 0;
-    document.getElementById('s-success').textContent   = st.successToday   ?? st.SuccessToday   ?? 0;
-    document.getElementById('s-failed').textContent    = st.failedToday    ?? st.FailedToday    ?? 0;
-    document.getElementById('s-running').textContent   = st.runningNow     ?? st.RunningNow     ?? 0;
-    // Logs
-    const logs = d.recentLogs ?? d.RecentLogs ?? [];
-    const rows = logs.map(l => `
-      <tr>
-        <td><span class="badge badge-running">${l.productName||'—'}</span></td>
-        <td>${l.clientName||'—'}</td>
-        <td><code>${l.externalId||'—'}</code></td>
-        <td>${l.jobTypeCode||'—'}</td>
-        <td><span class="badge badge-skipped">${l.triggerType}</span></td>
-        <td>${formatDate(l.startedAt)}</td>
-        <td>${l.durationSeconds ? l.durationSeconds+'s' : '—'}</td>
-        <td>${statusBadge(l.status)}</td>
-        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--error);font-size:12px">${l.errorMessage||''}</td>
-      </tr>`).join('');
-    document.getElementById('dash-logs-body').innerHTML = rows || emptyRow(9,'No recent activity');
+    if (document.getElementById('s-products'))  document.getElementById('s-products').textContent  = st.totalProducts  ?? st.TotalProducts  ?? 0;
+    if (document.getElementById('s-clients'))   document.getElementById('s-clients').textContent   = st.totalClients   ?? st.TotalClients   ?? 0;
+    if (document.getElementById('s-schedules')) document.getElementById('s-schedules').textContent = st.activeSchedules?? st.ActiveSchedules?? 0;
+    if (document.getElementById('s-success'))   document.getElementById('s-success').textContent   = st.successToday   ?? st.SuccessToday   ?? 0;
+    if (document.getElementById('s-failed'))    document.getElementById('s-failed').textContent    = st.failedToday    ?? st.FailedToday    ?? 0;
+    if (document.getElementById('s-running'))   document.getElementById('s-running').textContent   = st.runningNow     ?? st.RunningNow     ?? 0;
+
+    // Logs — handle both camelCase and PascalCase
+    const logs = d.recentLogs ?? d.RecentLogs ?? d.logs ?? d.Logs ?? [];
+    if (!Array.isArray(logs) || logs.length === 0) {
+      if (tbody) tbody.innerHTML = emptyRow(9, 'No recent activity yet — jobs will appear here once executed');
+    } else {
+      const rows = logs.map(l => {
+        const pName = l.ProductName || l.productName || '—';
+        const cName = l.ClientName  || l.clientName  || '—';
+        const extId = l.ExternalId  || l.externalId  || '—';
+        const jCode = l.JobTypeCode || l.jobTypeCode || '—';
+        const trig  = l.TriggerType || l.triggerType || '—';
+        const start = l.StartedAt   || l.startedAt;
+        const dur   = l.DurationSeconds ?? l.durationSeconds;
+        const stat  = l.Status     || l.status;
+        const err   = l.ErrorMessage || l.errorMessage || '';
+
+        return `
+        <tr>
+          <td><span class="badge badge-running">${pName}</span></td>
+          <td>${cName}</td>
+          <td><code>${extId}</code></td>
+          <td>${jCode}</td>
+          <td><span class="badge badge-skipped">${trig}</span></td>
+          <td>${formatDate(start)}</td>
+          <td>${dur != null ? dur + 's' : '—'}</td>
+          <td>${statusBadge(stat)}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--error);font-size:12px">${err}</td>
+        </tr>`;
+      }).join('');
+      if (tbody) tbody.innerHTML = rows;
+    }
     // Pagination
-    buildPagination('dash-pagination', d.page ?? d.Page, d.totalPages ?? d.TotalPages, loadDashboard);
+    buildPagination('dash-pagination', d.page ?? d.Page ?? page, d.totalPages ?? d.TotalPages ?? 1, loadDashboard);
   } catch(e) {
-    document.getElementById('dash-logs-body').innerHTML = emptyRow(9,e.message,true);
+    if (tbody) tbody.innerHTML = emptyRow(9, e.message, true);
+    console.error('[Dashboard] loadDashboard error:', e);
   }
 }
 
@@ -1926,96 +2507,23 @@ function row2(label, val) {
 }
 
 async function purgeLogs() {
-  const days = prompt('Delete logs older than how many days?', '30');
+  const days = await confirmAction({
+    title: 'Purge Execution Logs',
+    message: 'Delete execution logs older than how many days?',
+    icon: '📜',
+    confirmText: '🗑️ Purge Logs',
+    confirmClass: 'btn-danger',
+    inputType: 'number',
+    inputValue: '30'
+  });
   if (!days) return;
   try {
     const r = await api('DELETE', `/api/logs/purge?olderThanDays=${days}`);
-    toast(r.message); loadLogs(1);
+    toast(r.message || 'Logs purged!'); loadLogs(1);
   } catch(e) { toast(e.message,'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// API CLIENTS
-// ═══════════════════════════════════════════════════════════════
-async function loadApiClients() {
-  try {
-    const data = await api('GET', '/api/apiclients');
-    const rows = data.map((ac,i) => `
-      <tr>
-        <td>${i+1}</td>
-        <td><b>${ac.clientName}</b></td>
-        <td><code style="font-size:12px">${ac.apiKey}</code></td>
-        <td>${ac.allowedProductIds||'<span style="color:var(--text-muted)">All</span>'}</td>
-        <td>${ac.isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
-        <td>${ac.lastUsedAt ? formatDate(ac.lastUsedAt) : '<span style="color:var(--text-muted)">Never</span>'}</td>
-        <td class="actions-cell">
-          <button class="btn btn-secondary btn-sm" onclick="editApiClient(${JSON.stringify(ac).replace(/"/g,'&quot;')})">✏</button>
-          <button class="btn btn-warning btn-sm" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="regenerateKey(${ac.apiClientId})">🔄 Regen</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteApiClient(${ac.apiClientId})">🗑</button>
-        </td>
-      </tr>`).join('');
-    document.getElementById('apiclients-body').innerHTML = rows || emptyRow(7,'No API clients');
-  } catch(e) { document.getElementById('apiclients-body').innerHTML = emptyRow(7,e.message,true); }
-}
 
-function openApiClientModal(ac) {
-  document.getElementById('ac-id').value = ac?.apiClientId||0;
-  document.getElementById('ac-name').value = ac?.clientName||'';
-  document.getElementById('ac-products').value = ac?.allowedProductIds||'';
-  document.getElementById('ac-active').checked = ac ? ac.isActive : true;
-  document.getElementById('new-key-display').style.display = 'none';
-  document.getElementById('ac-save-btn').style.display = '';
-  document.getElementById('apiclient-modal-title').textContent = ac ? 'Edit API Client' : 'New API Client';
-  openModal('modal-apiclient');
-}
-function editApiClient(ac) { openApiClientModal(ac); }
-
-async function saveApiClient() {
-  const body = {
-    apiClientId: +document.getElementById('ac-id').value,
-    clientName: document.getElementById('ac-name').value.trim(),
-    allowedProductIds: document.getElementById('ac-products').value.trim()||null,
-    isActive: document.getElementById('ac-active').checked,
-  };
-  if (!body.clientName) return toast('Client name is required','error');
-  try {
-    const r = await api('POST', '/api/apiclients/save', body);
-    if (r.apiKey) {
-      document.getElementById('new-key-value').textContent = r.apiKey;
-      document.getElementById('new-key-display').style.display = 'block';
-      document.getElementById('ac-save-btn').style.display = 'none';
-      toast('API Key generated! Copy it now.');
-    } else {
-      toast('API Client updated!');
-      closeModal('modal-apiclient');
-    }
-    loadApiClients();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-async function regenerateKey(id) {
-  if (!confirm('Generate a new API key? The old key will stop working.')) return;
-  try {
-    const r = await api('POST', `/api/apiclients/${id}/regenerate`);
-    document.getElementById('new-key-value').textContent = r.apiKey;
-    document.getElementById('new-key-display').style.display = 'block';
-    document.getElementById('ac-id').value = id;
-    document.getElementById('ac-save-btn').style.display = 'none';
-    openModal('modal-apiclient');
-    toast('Key regenerated! Copy it now.','warning');
-  } catch(e) { toast(e.message,'error'); }
-}
-
-async function deleteApiClient(id) {
-  if (!confirm('Delete this API client? The key will stop working.')) return;
-  try { await api('DELETE', `/api/apiclients/${id}`); toast('Deleted!'); loadApiClients(); }
-  catch(e) { toast(e.message,'error'); }
-}
-
-function copyKey() {
-  const key = document.getElementById('new-key-value').textContent;
-  navigator.clipboard.writeText(key).then(() => toast('Key copied!'));
-}
 
 // ═══════════════════════════════════════════════════════════════
 // SETTINGS
@@ -2065,6 +2573,12 @@ function formatDate(d) {
 function emptyRow(cols, msg, isError=false) {
   return `<tr><td colspan="${cols}" style="text-align:center;padding:30px;color:${isError?'var(--error)':'var(--text-muted)'}">
     ${isError?'❌':'📭'} ${msg}</td></tr>`;
+}
+
+function copyJsonText(id) {
+  const txt = document.getElementById(id)?.textContent;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => toast('JSON Payload copied to clipboard!'));
 }
 
 function buildPagination(containerId, page, totalPages, callback) {

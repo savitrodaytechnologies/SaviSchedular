@@ -28,7 +28,7 @@ namespace SaviSchedular.Controllers
                 : "unknown");
 
         // ─────────────────────────────────────────────────────────────────────
-        // GET /api/scheduler — All schedules (with full joined data)
+        // GET /api/scheduler — All schedules (with full joined data)B
         // ─────────────────────────────────────────────────────────────────────
         [HttpGet, Route("")]
         public HttpResponseMessage GetAll([FromUri] int? productId = null, [FromUri] long? clientId = null,
@@ -126,11 +126,15 @@ namespace SaviSchedular.Controllers
                         var newId = conn.ExecuteScalar<long>(@"
                             INSERT INTO SchedulerJobInstances
                                 (ClientId, ProductId, JobTypeId, CustomApiPath, CustomApiToken, PayloadJson,
-                                 ScheduledHour, ScheduledMinute, ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear, ScheduleRules, CronExpression,
+                                 ScheduledHour, ScheduledMinute, ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear,
+                                 MultipleTimes, IntervalValue, IntervalUnit,
+                                 ScheduleRules, CronExpression,
                                  TimeZone, IsActive, RunOnHolidays, MisfireThresholdMinutes, CreatedAt, UpdatedAt, CreatedBy)
                             VALUES
                                 (@ClientId, @ProductId, @JobTypeId, @CustomApiPath, @CustomApiToken, @PayloadJson,
-                                 @ScheduledHour, @ScheduledMinute, @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear, @ScheduleRules, @CronExpression,
+                                 @ScheduledHour, @ScheduledMinute, @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear,
+                                 @MultipleTimes, @IntervalValue, @IntervalUnit,
+                                 @ScheduleRules, @CronExpression,
                                  @TimeZone, @IsActive, @RunOnHolidays, @MisfireThresholdMinutes, @Now, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
                             new {
@@ -138,7 +142,9 @@ namespace SaviSchedular.Controllers
                                 req.CustomApiPath, req.CustomApiToken, req.PayloadJson,
                                 ScheduledHour = hour, ScheduledMinute = minute,
                                 ScheduledTime = timeStr, FrequencyType = freqType,
-                                req.ScheduledDays, req.DayOfMonth, req.MonthOfYear, req.ScheduleRules, req.CronExpression,
+                                req.ScheduledDays, req.DayOfMonth, req.MonthOfYear,
+                                req.MultipleTimes, req.IntervalValue, req.IntervalUnit,
+                                req.ScheduleRules, req.CronExpression,
                                 TimeZone = req.TimeZone ?? "India Standard Time",
                                 req.IsActive, req.RunOnHolidays,
                                 MisfireThresholdMinutes = req.MisfireThresholdMinutes > 0 ? req.MisfireThresholdMinutes : 15,
@@ -173,6 +179,9 @@ namespace SaviSchedular.Controllers
                                 ScheduledDays           = @ScheduledDays,
                                 DayOfMonth              = @DayOfMonth,
                                 MonthOfYear             = @MonthOfYear,
+                                MultipleTimes           = @MultipleTimes,
+                                IntervalValue           = @IntervalValue,
+                                IntervalUnit            = @IntervalUnit,
                                 ScheduleRules           = @ScheduleRules,
                                 CronExpression          = @CronExpression,
                                 TimeZone                = @TimeZone,
@@ -185,7 +194,9 @@ namespace SaviSchedular.Controllers
                                 req.CustomApiPath, CustomApiToken = tokenToSave, req.PayloadJson,
                                 Hour = hour, Minute = minute,
                                 ScheduledTime = timeStr, FrequencyType = freqType,
-                                req.ScheduledDays, req.DayOfMonth, req.MonthOfYear, req.ScheduleRules, req.CronExpression,
+                                req.ScheduledDays, req.DayOfMonth, req.MonthOfYear,
+                                req.MultipleTimes, req.IntervalValue, req.IntervalUnit,
+                                req.ScheduleRules, req.CronExpression,
                                 TimeZone = req.TimeZone ?? "India Standard Time",
                                 req.IsActive, req.RunOnHolidays,
                                 MisfireThresholdMinutes = req.MisfireThresholdMinutes > 0 ? req.MisfireThresholdMinutes : 15,

@@ -295,6 +295,8 @@
               <option value="WEEKLY">Weekly (Select Days of Week)</option>
               <option value="MONTHLY">Monthly (Specific Day of Month)</option>
               <option value="YEARLY">Yearly / Specific Month & Date (e.g. 15th March)</option>
+              <option value="TWICE_DAILY">Twice / Multiple Times Daily (e.g. 06:00 AM & 06:00 PM)</option>
+              <option value="INTERVAL">Recurring Interval / Hourly (Health Checkup)</option>
               <option value="MULTI_SLOT">Multi-Slot (Day-wise Different Times)</option>
               <option value="CRON">Custom Cron Expression</option>
             </select>
@@ -352,6 +354,30 @@
           </div>
         </div>
 
+        <!-- Twice / Multiple Times Panel -->
+        <div id="sch-multitimes-panel" style="display:none; margin-top:12px;">
+          <label for="sch-multi-times">Multiple Execution Times (Comma Separated e.g. 06:00, 18:00) *</label>
+          <input type="text" id="sch-multi-times" placeholder="06:00, 18:00" value="06:00, 18:00">
+          <span style="font-size:11px; color:#64748b;">Enter 24-hr time formats separated by commas (e.g. 06:00, 12:00, 18:00)</span>
+        </div>
+
+        <!-- Recurring Interval / Hourly Health Checkup Panel -->
+        <div id="sch-interval-panel" style="display:none; margin-top:12px;">
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>Repeat Every *</label>
+              <input type="number" id="sch-interval-val" min="1" max="59" value="2" style="height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; width:100%;">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>Time Unit *</label>
+              <select id="sch-interval-unit" style="width:100%; height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; color:#334155;">
+                <option value="HOURS" selected>Hours (घंटे)</option>
+                <option value="MINUTES">Minutes (मिनट)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <!-- Multi-Slot Rules Panel -->
         <div id="sch-multislot-panel" style="display:none; margin-top:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -400,11 +426,13 @@
       document.getElementById('sch-weekly-panel').style.display = 'none';
       document.getElementById('sch-monthly-panel').style.display = 'none';
       document.getElementById('sch-yearly-panel').style.display = 'none';
+      document.getElementById('sch-multitimes-panel').style.display = 'none';
+      document.getElementById('sch-interval-panel').style.display = 'none';
       document.getElementById('sch-multislot-panel').style.display = 'none';
       document.getElementById('sch-cron-panel').style.display = 'none';
 
       const timeGroup = document.getElementById('sch-time-group');
-      if (fType === 'MULTI_SLOT' || fType === 'CRON') {
+      if (fType === 'MULTI_SLOT' || fType === 'CRON' || fType === 'TWICE_DAILY' || fType === 'INTERVAL') {
         if (timeGroup) timeGroup.style.display = 'none';
       } else {
         if (timeGroup) timeGroup.style.display = 'block';
@@ -416,6 +444,10 @@
         document.getElementById('sch-monthly-panel').style.display = 'block';
       } else if (fType === 'YEARLY') {
         document.getElementById('sch-yearly-panel').style.display = 'block';
+      } else if (fType === 'TWICE_DAILY') {
+        document.getElementById('sch-multitimes-panel').style.display = 'block';
+      } else if (fType === 'INTERVAL') {
+        document.getElementById('sch-interval-panel').style.display = 'block';
       } else if (fType === 'MULTI_SLOT') {
         document.getElementById('sch-multislot-panel').style.display = 'block';
         if (document.querySelectorAll('#sch-rules-container .sch-rule-row').length === 0) {
@@ -505,6 +537,9 @@
         scheduledDays: selectedDays.length > 0 ? selectedDays.join(',') : undefined,
         dayOfMonth: dayOfMonthVal,
         monthOfYear: monthOfYearVal,
+        multipleTimes: freqType === 'TWICE_DAILY' ? (document.getElementById('sch-multi-times').value || '06:00, 18:00') : undefined,
+        intervalValue: freqType === 'INTERVAL' ? (parseInt(document.getElementById('sch-interval-val').value, 10) || 2) : undefined,
+        intervalUnit: freqType === 'INTERVAL' ? (document.getElementById('sch-interval-unit').value || 'HOURS') : undefined,
         scheduleRules: multiRules.length > 0 ? JSON.stringify(multiRules) : undefined,
         cronExpression: document.getElementById('sch-cron-expr').value || undefined,
         customApiPath: getValOrPlaceholder('api-path') || undefined,

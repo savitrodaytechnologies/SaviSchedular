@@ -146,6 +146,40 @@ namespace SaviSchedular.Services
                 }
             }
 
+            if ((freq == "TWICE_DAILY" || freq == "MULTIPLE_TIMES") && !string.IsNullOrWhiteSpace(inst.MultipleTimes))
+            {
+                var timesList = inst.MultipleTimes.Split(',', ';', ' ')
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim());
+
+                foreach (var timeItem in timesList)
+                {
+                    var tp = timeItem.Split(':');
+                    if (tp.Length >= 2 && int.TryParse(tp[0], out int th) && int.TryParse(tp[1], out int tm))
+                    {
+                        result.Add($"{tm} {th} * * *");
+                    }
+                }
+
+                if (result.Count > 0) return result;
+            }
+
+            if (freq == "INTERVAL" || freq == "HOURLY")
+            {
+                int val = inst.IntervalValue.HasValue && inst.IntervalValue.Value > 0 ? inst.IntervalValue.Value : 1;
+                string unit = (inst.IntervalUnit ?? "HOURS").Trim().ToUpper();
+
+                if (unit == "MINUTES" || unit == "MINUTE")
+                {
+                    result.Add($"*/{val} * * * *");
+                }
+                else
+                {
+                    result.Add($"0 */{val} * * *");
+                }
+                return result;
+            }
+
             if (freq == "MONTHLY" && !string.IsNullOrWhiteSpace(inst.DayOfMonth))
             {
                 result.Add($"{min} {hour} {inst.DayOfMonth.Trim()} * *");
@@ -259,37 +293,71 @@ namespace SaviSchedular.Services
                 {
                     var tz       = SafeGetTimezone(inst.TimeZone);
                     var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-                    var scheduled= nowLocal.Date.AddHours(inst.ScheduledHour).AddMinutes(inst.ScheduledMinute);
-                    double gapMin= Math.Abs((nowLocal - scheduled).TotalMinutes);
+                    string freq  = (inst.FrequencyType ?? "DAILY").Trim().ToUpper();
 
-                    // Tight misfire check: if gap is > 3 minutes, skip late run
-                    if (gapMin > 3)
+                    // ── Misfire Check ─────────────────────────────────────────
+                    // TWICE_DAILY / INTERVAL / MULTI_SLOT fire multiple times → 
+                    // check misfire against the closest scheduled time, not fixed one.
+                    bool skipMisfireCheck = (freq == "TWICE_DAILY" || freq == "INTERVAL" || 
+                                             freq == "MULTI_SLOT"  || freq == "CRON");
+
+                    if (!skipMisfireCheck)
                     {
-                        Console.WriteLine($"[SaviSchedular v2] MISFIRE SKIP: Instance {instanceId}. Gap {gapMin:F1}m.");
-                        LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: $"MISFIRE (Gap {gapMin:F1}m)");
-                        return;
+                        var scheduled = nowLocal.Date.AddHours(inst.ScheduledHour).AddMinutes(inst.ScheduledMinute);
+                        double gapMin = Math.Abs((nowLocal - scheduled).TotalMinutes);
+
+                        if (gapMin > 3)
+                        {
+                            Console.WriteLine($"[SaviSchedular v2] MISFIRE SKIP: Instance {instanceId}. Gap {gapMin:F1}m.");
+                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: $"MISFIRE (Gap {gapMin:F1}m)");
+                            return;
+                        }
                     }
 
-                    // Check if already executed or running today (using C# local date range to prevent RDS timezone mismatch)
+                    // ── Duplicate Run Check ───────────────────────────────────
+                    // For TWICE_DAILY / INTERVAL: allow multiple runs per day.
+                    // Check if already ran within the last N minutes (slot window) instead of "today".
                     using (var conn = new SqlConnection(SchedConn))
                     {
-                        DateTime todayStart = DateTime.Now.Date;
-                        DateTime todayEnd   = todayStart.AddDays(1);
+                        bool alreadyRan = false;
 
-                        bool alreadyRanToday = conn.ExecuteScalar<bool>(@"
-                            SELECT CASE WHEN EXISTS (
-                                SELECT 1 FROM SchedulerExecutionLogs
-                                WHERE InstanceId = @InstanceId
-                                  AND Status IN ('SUCCESS', 'RUNNING')
-                                  AND StartedAt >= @TodayStart AND StartedAt < @TodayEnd
-                                  AND LogId != @CurrentLogId
-                            ) THEN 1 ELSE 0 END",
-                            new { InstanceId = instanceId, TodayStart = todayStart, TodayEnd = todayEnd, CurrentLogId = logId });
-
-                        if (alreadyRanToday)
+                        if (freq == "TWICE_DAILY" || freq == "INTERVAL" || freq == "MULTI_SLOT")
                         {
-                            Console.WriteLine($"[SaviSchedular v2] ALREADY EXECUTED TODAY: Instance {instanceId}. Skipping duplicate run.");
-                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "ALREADY_EXECUTED_TODAY");
+                            // Window = 30 minutes around this slot — prevent exact-duplicate triggers only
+                            DateTime windowStart = DateTime.Now.AddMinutes(-30);
+                            DateTime windowEnd   = DateTime.Now.AddMinutes(5);
+
+                            alreadyRan = conn.ExecuteScalar<bool>(@"
+                                SELECT CASE WHEN EXISTS (
+                                    SELECT 1 FROM SchedulerExecutionLogs
+                                    WHERE InstanceId = @InstanceId
+                                      AND Status IN ('SUCCESS', 'RUNNING')
+                                      AND StartedAt >= @WindowStart AND StartedAt < @WindowEnd
+                                      AND LogId != @CurrentLogId
+                                ) THEN 1 ELSE 0 END",
+                                new { InstanceId = instanceId, WindowStart = windowStart, WindowEnd = windowEnd, CurrentLogId = logId });
+                        }
+                        else
+                        {
+                            // For DAILY / WEEKLY / MONTHLY etc. — allow only once per day
+                            DateTime todayStart = DateTime.Now.Date;
+                            DateTime todayEnd   = todayStart.AddDays(1);
+
+                            alreadyRan = conn.ExecuteScalar<bool>(@"
+                                SELECT CASE WHEN EXISTS (
+                                    SELECT 1 FROM SchedulerExecutionLogs
+                                    WHERE InstanceId = @InstanceId
+                                      AND Status IN ('SUCCESS', 'RUNNING')
+                                      AND StartedAt >= @TodayStart AND StartedAt < @TodayEnd
+                                      AND LogId != @CurrentLogId
+                                ) THEN 1 ELSE 0 END",
+                                new { InstanceId = instanceId, TodayStart = todayStart, TodayEnd = todayEnd, CurrentLogId = logId });
+                        }
+
+                        if (alreadyRan)
+                        {
+                            Console.WriteLine($"[SaviSchedular v2] DUPLICATE SKIP: Instance {instanceId} (freq={freq}).");
+                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "DUPLICATE_RUN");
                             return;
                         }
                     }
@@ -450,7 +518,7 @@ namespace SaviSchedular.Services
                             (int)response.StatusCode, SecureLogger.Sanitize(body), errorMessage: retryMsg, payloadSent: payloadJson);
 
                         // Schedule Hangfire one-off delayed job after specified retryDelaySec
-                        BackgroundJob.Schedule<SchoolSchedulerService>(s => s.ExecuteJob(instanceId, true), TimeSpan.FromSeconds(retryDelaySec));
+                        BackgroundJob.Schedule(() => ExecuteJobAsync(instanceId, true), TimeSpan.FromSeconds(retryDelaySec));
                         return;
                     }
 
@@ -545,12 +613,18 @@ namespace SaviSchedular.Services
                             [ScheduledDays] NVARCHAR(100) NULL,
                             [DayOfMonth]    NVARCHAR(50)  NULL,
                             [MonthOfYear]   NVARCHAR(50)  NULL,
+                            [MultipleTimes] NVARCHAR(200) NULL,
+                            [IntervalValue] INT           NULL,
+                            [IntervalUnit]  NVARCHAR(20)  NULL,
                             [ScheduleRules] NVARCHAR(MAX) NULL,
                             [CronExpression]NVARCHAR(200) NULL;
                     END
-                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SchedulerJobInstances') AND name = 'MonthOfYear')
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SchedulerJobInstances') AND name = 'MultipleTimes')
                     BEGIN
-                        ALTER TABLE [dbo].[SchedulerJobInstances] ADD [MonthOfYear] NVARCHAR(50) NULL;
+                        ALTER TABLE [dbo].[SchedulerJobInstances] ADD 
+                            [MultipleTimes] NVARCHAR(200) NULL,
+                            [IntervalValue] INT           NULL,
+                            [IntervalUnit]  NVARCHAR(20)  NULL;
                     END";
                 conn.Execute(sql);
             }
@@ -567,6 +641,7 @@ namespace SaviSchedular.Services
                     SELECT
                         ji.InstanceId, ji.ClientId, ji.ProductId, ji.JobTypeId, ji.CustomApiPath, ji.CustomApiToken, ji.PayloadJson,
                         ji.ScheduledHour, ji.ScheduledMinute, ji.ScheduledTime, ji.FrequencyType, ji.ScheduledDays, ji.DayOfMonth, ji.MonthOfYear,
+                        ji.MultipleTimes, ji.IntervalValue, ji.IntervalUnit,
                         ji.ScheduleRules, ji.CronExpression, ji.TimeZone, ji.IsActive, ji.RunOnHolidays, ji.MisfireThresholdMinutes,
                         ji.LastStatus, ji.LastRunAt, ji.CreatedAt, ji.UpdatedAt, ji.CreatedBy,
                         pc.ClientName, pc.ExternalId, pc.CustomBaseUrl,

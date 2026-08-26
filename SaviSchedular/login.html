@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — SaviSchedular</title>
+  <title>Login — SaviSchedular Admin Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -11,14 +11,13 @@
     :root {
       --primary: #4f46e5;
       --primary-hover: #4338ca;
-      --primary-glow: rgba(79, 70, 229, 0.35);
-      --accent: #06b6d4;
-      --dark-bg: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.85);
-      --card-border: rgba(255, 255, 255, 0.12);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --input-bg: rgba(15, 23, 42, 0.6);
+      --primary-glow: rgba(79, 70, 229, 0.2);
+      --accent: #0284c7;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
       --danger: #ef4444;
       --success: #10b981;
     }
@@ -30,70 +29,79 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0f172a;
+      background: #f1f5f9;
       background-image: 
-        radial-gradient(at 15% 15%, rgba(79, 70, 229, 0.25) 0px, transparent 50%),
-        radial-gradient(at 85% 85%, rgba(6, 182, 212, 0.2) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
+        radial-gradient(at 10% 10%, rgba(79, 70, 229, 0.08) 0px, transparent 40%),
+        radial-gradient(at 90% 90%, rgba(2, 132, 199, 0.08) 0px, transparent 40%),
+        radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.05) 0px, transparent 50%);
       background-attachment: fixed;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Ambient animated background grid */
-    body::before {
-      content: "";
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      top: -50%;
-      left: -50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 32px 32px;
-      transform: rotate(15deg);
-      pointer-events: none;
-    }
-
-    .login-container {
-      position: relative;
-      z-index: 10;
-      width: 100%;
-      max-width: 440px;
       padding: 20px;
     }
 
-    .login-card {
+    .login-wrapper {
+      width: 100%;
+      max-width: 1040px;
       background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
       border-radius: 24px;
-      padding: 40px 36px;
       box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 30px var(--primary-glow);
+        0 25px 50px -12px rgba(15, 23, 42, 0.12),
+        0 0 1px rgba(15, 23, 42, 0.08);
+      display: flex;
+      overflow: hidden;
+      min-height: 600px;
       animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      from { opacity: 0; transform: translateY(24px) scale(0.98); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .brand-badge {
+    /* ══ LEFT HERO PANEL ══ */
+    .brand-hero-panel {
+      flex: 1.1;
+      background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 50%, #f0f9ff 100%);
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-hero-panel::before {
+      content: "";
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79, 70, 229, 0.12) 0%, transparent 70%);
+      top: -80px;
+      right: -80px;
+      pointer-events: none;
+    }
+
+    .hero-top {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-brand {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      background: rgba(79, 70, 229, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      padding: 8px 16px;
+      gap: 12px;
+      background: #ffffff;
+      padding: 8px 18px;
       border-radius: 50px;
-      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      margin-bottom: 28px;
     }
 
     .brand-icon {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       background: linear-gradient(135deg, var(--primary), var(--accent));
       border-radius: 10px;
       display: flex;
@@ -101,39 +109,151 @@
       justify-content: center;
       font-size: 18px;
       color: #fff;
-      box-shadow: 0 4px 12px var(--primary-glow);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
     }
 
     .brand-name {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 700;
-      color: var(--text-main);
-      letter-spacing: 0.5px;
+      color: var(--text-dark);
+      letter-spacing: -0.2px;
     }
 
-    .login-title {
-      font-size: 26px;
+    .hero-title {
+      font-size: 28px;
       font-weight: 700;
-      color: var(--text-main);
+      color: #1e1b4b;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+
+    .hero-desc {
+      font-size: 14.5px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13.5px;
+      color: #334155;
+      font-weight: 500;
+    }
+
+    .feature-icon {
+      width: 24px;
+      height: 24px;
+      background: #ffffff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Graphic Preview Card */
+    .hero-graphic-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      margin-top: 10px;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .preview-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .preview-dot {
+      width: 6px;
+      height: 6px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+
+    .preview-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .preview-sub {
+      font-size: 11.5px;
+      color: #64748b;
+    }
+
+    .hero-footer {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ══ RIGHT FORM PANEL ══ */
+    .login-form-panel {
+      flex: 1;
+      padding: 48px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #ffffff;
+    }
+
+    .form-header {
+      margin-bottom: 28px;
+    }
+
+    .form-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-dark);
       margin-bottom: 6px;
     }
 
-    .login-subtitle {
+    .form-subtitle {
       font-size: 14px;
       color: var(--text-muted);
-      margin-bottom: 28px;
     }
 
     .form-group {
       margin-bottom: 20px;
-      position: relative;
     }
 
     .form-label {
       display: block;
       font-size: 13px;
-      font-weight: 500;
-      color: #cbd5e1;
+      font-weight: 600;
+      color: #334155;
       margin-bottom: 8px;
     }
 
@@ -146,7 +266,7 @@
     .input-icon {
       position: absolute;
       left: 14px;
-      color: var(--text-muted);
+      color: #94a3b8;
       font-size: 16px;
       pointer-events: none;
     }
@@ -155,19 +275,20 @@
       width: 100%;
       height: 48px;
       padding: 0 16px 0 42px;
-      background: var(--input-bg);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #f8fafc;
+      border: 1.5px solid var(--border-color);
       border-radius: 12px;
-      color: var(--text-main);
-      font-size: 15px;
-      transition: all 0.25s ease;
+      color: var(--text-dark);
+      font-size: 14.5px;
+      font-weight: 500;
+      transition: all 0.2s ease;
     }
 
     .form-input:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 4px var(--primary-glow);
-      background: rgba(15, 23, 42, 0.8);
+      background: #ffffff;
     }
 
     .password-toggle {
@@ -175,14 +296,14 @@
       right: 14px;
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #94a3b8;
       cursor: pointer;
       font-size: 16px;
       padding: 4px;
       transition: color 0.2s;
     }
 
-    .password-toggle:hover { color: var(--text-main); }
+    .password-toggle:hover { color: var(--text-dark); }
 
     .form-options {
       display: flex;
@@ -196,8 +317,9 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--text-muted);
+      color: #475569;
       cursor: pointer;
+      font-weight: 500;
     }
 
     .remember-wrap input[type="checkbox"] {
@@ -209,16 +331,16 @@
 
     .btn-login {
       width: 100%;
-      height: 50px;
+      height: 48px;
       background: linear-gradient(135deg, var(--primary), #6366f1);
       border: none;
       border-radius: 12px;
-      color: #fff;
-      font-size: 16px;
+      color: #ffffff;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 10px 20px -5px var(--primary-glow);
-      transition: all 0.3s ease;
+      box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.35);
+      transition: all 0.25s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -226,17 +348,17 @@
     }
 
     .btn-login:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 25px -5px var(--primary-glow);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px -5px rgba(79, 70, 229, 0.45);
       background: linear-gradient(135deg, var(--primary-hover), #4f46e5);
     }
 
     .btn-login:active { transform: translateY(0); }
 
     .btn-login .spinner {
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -246,12 +368,13 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .error-alert {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
       padding: 12px 16px;
       border-radius: 12px;
       font-size: 13.5px;
+      font-weight: 500;
       margin-bottom: 20px;
       display: none;
       align-items: center;
@@ -261,45 +384,102 @@
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
-    .login-footer {
-      margin-top: 24px;
-      text-align: center;
-      font-size: 12.5px;
-      color: var(--text-muted);
-    }
-
     .hint-box {
-      margin-top: 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px dashed rgba(255, 255, 255, 0.15);
+      margin-top: 20px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
       border-radius: 12px;
       padding: 10px 14px;
       font-size: 12px;
-      color: #cbd5e1;
+      color: #475569;
       text-align: center;
     }
 
     .hint-box code {
-      background: rgba(79, 70, 229, 0.3);
-      color: #a5b4fc;
+      background: #e0e7ff;
+      color: #4338ca;
       padding: 2px 6px;
       border-radius: 4px;
       font-family: monospace;
+      font-weight: 600;
+    }
+
+    .form-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    @media (max-width: 860px) {
+      .login-wrapper { flex-direction: column; }
+      .brand-hero-panel { padding: 32px 24px; }
+      .login-form-panel { padding: 36px 24px; }
     }
   </style>
 </head>
 <body>
 
-  <div class="login-container">
-    <div class="login-card">
-      
-      <div class="brand-badge">
-        <div class="brand-icon">⚡</div>
-        <div class="brand-name">SaviSchedular</div>
+  <div class="login-wrapper">
+    
+    <!-- ══ LEFT SIDE HERO DESCRIPTION ══ -->
+    <div class="brand-hero-panel">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <div class="brand-icon">⚡</div>
+          <div class="brand-name">SaviSchedular</div>
+        </div>
+
+        <h1 class="hero-title">Enterprise Job Scheduling & Automation Platform</h1>
+        <p class="hero-desc">
+          Automate attendance notifications, fee collection reminders, health checkups, and multi-slot webhooks seamlessly across all your school ERP products with precision timing.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon">⏰</div>
+            <div><b>Multi-Slot & Flexible Timing:</b> Daily, Twice-Daily, Weekly, Monthly & Day-wise time rules.</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <div><b>Hangfire Real-Time Engine:</b> High-concurrency background job processing with zero drop rates.</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🔐</div>
+            <div><b>RS256 JWT Security:</b> Encrypted tokens and authenticated external REST API integration.</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📜</div>
+            <div><b>Audit & Execution Logs:</b> Complete run history, automatic retries, and instant monitoring.</div>
+          </div>
+        </div>
+
+        <!-- Graphic Preview -->
+        <div class="hero-graphic-card">
+          <div class="preview-header">
+            <div>
+              <div class="preview-title">WhatsApp Absent Notification</div>
+              <div class="preview-sub">SaviSchools Project (St. Xavier School)</div>
+            </div>
+            <div class="preview-status"><div class="preview-dot"></div> EXECUTING</div>
+          </div>
+          <div style="font-size:11px; color:#64748b; font-family:monospace; background:#f8fafc; padding:6px 10px; border-radius:6px;">
+            POST /api/messaging/send-absent ➔ HTTP 200 OK (0.42s)
+          </div>
+        </div>
       </div>
 
-      <h2 class="login-title">Welcome Back</h2>
-      <p class="login-subtitle">Sign in to access your scheduler console</p>
+      <div class="hero-footer">
+        Powered by Savitroday Technologies &copy; 2026
+      </div>
+    </div>
+
+    <!-- ══ RIGHT SIDE LOGIN FORM ══ -->
+    <div class="login-form-panel">
+      <div class="form-header">
+        <h2 class="form-title">Sign in to Admin Console</h2>
+        <p class="form-subtitle">Enter your administrative credentials to continue</p>
+      </div>
 
       <div class="error-alert" id="error-alert">
         <span>⚠️</span>
@@ -341,10 +521,11 @@
         🔑 Initial SuperAdmin: <code>admin</code> / <code>Admin@123</code>
       </div>
 
-      <div class="login-footer">
-        &copy; 2026 Savitroday Technologies. All Rights Reserved.
+      <div class="form-footer">
+        SaviSchedular Console v2.0 &copy; 2026
       </div>
     </div>
+
   </div>
 
   <script>

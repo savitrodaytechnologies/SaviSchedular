@@ -197,11 +197,11 @@ namespace SaviSchedular.Controllers
                         instanceId = conn.ExecuteScalar<long>(@"
                             INSERT INTO SchedulerJobInstances
                                 (ClientId, ProductId, JobTypeId, CustomApiPath, CustomApiToken, PayloadJson, ScheduledHour, ScheduledMinute,
-                                 ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear, ScheduleRules, CronExpression,
+                                 ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear, MultipleTimes, IntervalValue, IntervalUnit, ScheduleRules, CronExpression,
                                  TimeZone, IsActive, RunOnHolidays, MisfireThresholdMinutes, CreatedAt, UpdatedAt, CreatedBy)
                             VALUES
                                 (@ClientId, @ProductId, @JobTypeId, @CustomApiPath, @CustomApiToken, @PayloadJson, @ScheduledHour, @ScheduledMinute,
-                                 @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear, @ScheduleRules, @CronExpression,
+                                 @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear, @MultipleTimes, @IntervalValue, @IntervalUnit, @ScheduleRules, @CronExpression,
                                  @TimeZone, @IsActive, @RunOnHolidays, 15, @Now, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
                             new {
@@ -210,6 +210,7 @@ namespace SaviSchedular.Controllers
                                 req.PayloadJson, ScheduledHour = hour, ScheduledMinute = minute,
                                 ScheduledTime = timeStr, FrequencyType = freqType,
                                 ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
+                                MultipleTimes = req.MultipleTimes, IntervalValue = req.IntervalValue, IntervalUnit = req.IntervalUnit,
                                 ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
                                 TimeZone = req.TimeZone ?? "India Standard Time",
                                 IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
@@ -231,6 +232,9 @@ namespace SaviSchedular.Controllers
                                 ScheduledDays   = @ScheduledDays,
                                 DayOfMonth      = @DayOfMonth,
                                 MonthOfYear     = @MonthOfYear,
+                                MultipleTimes   = @MultipleTimes,
+                                IntervalValue   = @IntervalValue,
+                                IntervalUnit    = @IntervalUnit,
                                 ScheduleRules   = @ScheduleRules,
                                 CronExpression  = @CronExpression,
                                 IsActive        = @IsActive,
@@ -242,6 +246,7 @@ namespace SaviSchedular.Controllers
                                 PayloadJson = req.PayloadJson, Hour = hour, Minute = minute,
                                 ScheduledTime = timeStr, FrequencyType = freqType,
                                 ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
+                                MultipleTimes = req.MultipleTimes, IntervalValue = req.IntervalValue, IntervalUnit = req.IntervalUnit,
                                 ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
                                 IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
                                 Now = DateTime.Now, Id = instanceId
