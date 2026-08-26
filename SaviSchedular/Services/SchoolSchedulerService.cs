@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -48,6 +50,120 @@ namespace SaviSchedular.Services
             }
         }
 
+        private static string ConvertDayToCronDigit(string day)
+        {
+            if (string.IsNullOrWhiteSpace(day)) return "";
+            string d = day.Trim().ToUpper();
+            switch (d)
+            {
+                case "SUN": case "0": case "7": return "0";
+                case "MON": case "1": return "1";
+                case "TUE": case "2": return "2";
+                case "WED": case "3": return "3";
+                case "THU": case "4": return "4";
+                case "FRI": case "5": return "5";
+                case "SAT": case "6": return "6";
+                default: return d;
+            }
+        }
+
+        public static System.Collections.Generic.List<string> BuildCronExpressions(SchedulerJobInstanceModel inst)
+        {
+            var result = new System.Collections.Generic.List<string>();
+            if (inst == null) return result;
+
+            int hour = inst.ScheduledHour;
+            int min = inst.ScheduledMinute;
+            if (!string.IsNullOrWhiteSpace(inst.ScheduledTime))
+            {
+                var parts = inst.ScheduledTime.Split(':');
+                if (parts.Length >= 2 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int m))
+                {
+                    hour = h;
+                    min = m;
+                }
+            }
+
+            string freq = (inst.FrequencyType ?? "DAILY").Trim().ToUpper();
+
+            if (!string.IsNullOrWhiteSpace(inst.CronExpression))
+            {
+                result.Add(inst.CronExpression.Trim());
+                return result;
+            }
+
+            if ((freq == "MULTI_SLOT" || !string.IsNullOrWhiteSpace(inst.ScheduleRules)) && !string.IsNullOrWhiteSpace(inst.ScheduleRules))
+            {
+                try
+                {
+                    var rules = JsonConvert.DeserializeObject<System.Collections.Generic.List<ScheduleRuleItem>>(inst.ScheduleRules);
+                    if (rules != null && rules.Count > 0)
+                    {
+                        foreach (var rule in rules)
+                        {
+                            int rHour = hour, rMin = min;
+                            if (!string.IsNullOrWhiteSpace(rule.Time))
+                            {
+                                var tp = rule.Time.Split(':');
+                                if (tp.Length >= 2 && int.TryParse(tp[0], out int rh) && int.TryParse(tp[1], out int rm))
+                                {
+                                    rHour = rh;
+                                    rMin = rm;
+                                }
+                            }
+
+                            if (rule.Days != null && rule.Days.Count > 0)
+                            {
+                                var cronDays = rule.Days.Select(ConvertDayToCronDigit).Where(d => !string.IsNullOrEmpty(d)).Distinct();
+                                string dayStr = string.Join(",", cronDays);
+                                if (!string.IsNullOrEmpty(dayStr))
+                                    result.Add($"{rMin} {rHour} * * {dayStr}");
+                                else
+                                    result.Add($"{rMin} {rHour} * * *");
+                            }
+                            else
+                            {
+                                result.Add($"{rMin} {rHour} * * *");
+                            }
+                        }
+                        if (result.Count > 0) return result;
+                    }
+                }
+                catch { }
+            }
+
+            if (freq == "WEEKLY" && !string.IsNullOrWhiteSpace(inst.ScheduledDays))
+            {
+                var days = inst.ScheduledDays.Split(',', ';', ' ')
+                    .Select(ConvertDayToCronDigit)
+                    .Where(d => !string.IsNullOrEmpty(d))
+                    .Distinct();
+                string dayStr = string.Join(",", days);
+                if (!string.IsNullOrEmpty(dayStr))
+                {
+                    result.Add($"{min} {hour} * * {dayStr}");
+                    return result;
+                }
+            }
+
+            if (freq == "MONTHLY" && !string.IsNullOrWhiteSpace(inst.DayOfMonth))
+            {
+                result.Add($"{min} {hour} {inst.DayOfMonth.Trim()} * *");
+                return result;
+            }
+
+            if ((freq == "YEARLY" || freq == "SPECIFIC_DATE") && (!string.IsNullOrWhiteSpace(inst.DayOfMonth) || !string.IsNullOrWhiteSpace(inst.MonthOfYear)))
+            {
+                string dom = !string.IsNullOrWhiteSpace(inst.DayOfMonth) ? inst.DayOfMonth.Trim() : "1";
+                string moy = !string.IsNullOrWhiteSpace(inst.MonthOfYear) ? inst.MonthOfYear.Trim() : "1";
+                result.Add($"{min} {hour} {dom} {moy} *");
+                return result;
+            }
+
+            result.Add(Cron.Daily(hour, min));
+            return result;
+        }
+
         // ═════════════════════════════════════════════════════════════════════
         // REGISTER — Load instance from DB and add to Hangfire
         // ═════════════════════════════════════════════════════════════════════
@@ -62,19 +178,28 @@ namespace SaviSchedular.Services
                     return;
                 }
 
-                var tz    = SafeGetTimezone(inst.TimeZone);
-                string jobId = GetJobId(instanceId);
+                // First cleanup any existing jobs for this instance
+                RemoveJob(instanceId);
 
-                RecurringJob.AddOrUpdate(
-                    jobId,
-                    () => ExecuteJobAsync(instanceId, false),
-                    Cron.Daily(inst.ScheduledHour, inst.ScheduledMinute),
-                    tz
-                );
+                var tz = SafeGetTimezone(inst.TimeZone);
+                var crons = BuildCronExpressions(inst);
 
-                Console.WriteLine(
-                    $"[SaviSchedular v2] ✓ Registered: [{inst.ProductCode}] {inst.ClientName} ({inst.ExternalId}) | " +
-                    $"{inst.JobTypeCode} → {inst.ScheduledHour:D2}:{inst.ScheduledMinute:D2} [{inst.TimeZone}]");
+                for (int i = 0; i < crons.Count; i++)
+                {
+                    string jobId = i == 0 ? GetJobId(instanceId) : $"{GetJobId(instanceId)}-slot-{i + 1}";
+                    string cronExpr = crons[i];
+
+                    RecurringJob.AddOrUpdate(
+                        jobId,
+                        () => ExecuteJobAsync(instanceId, false),
+                        cronExpr,
+                        tz
+                    );
+
+                    Console.WriteLine(
+                        $"[SaviSchedular v2] ✓ Registered Job [{jobId}]: [{inst.ProductCode}] {inst.ClientName} ({inst.ExternalId}) | " +
+                        $"{inst.JobTypeCode} → Cron: '{cronExpr}' [{inst.TimeZone}]");
+                }
             }
             catch (Exception ex)
             {
@@ -87,8 +212,12 @@ namespace SaviSchedular.Services
         // ═════════════════════════════════════════════════════════════════════
         public static void RemoveJob(long instanceId)
         {
-            string jobId = GetJobId(instanceId);
-            RecurringJob.RemoveIfExists(jobId);
+            string mainJobId = GetJobId(instanceId);
+            RecurringJob.RemoveIfExists(mainJobId);
+            for (int i = 1; i <= 20; i++)
+            {
+                RecurringJob.RemoveIfExists($"{mainJobId}-slot-{i}");
+            }
             Console.WriteLine($"[SaviSchedular v2] ✗ Removed: InstanceId {instanceId}");
         }
 
@@ -310,6 +439,21 @@ namespace SaviSchedular.Services
 
                     string body = await response.Content.ReadAsStringAsync();
 
+                    // Dynamic Retry Logic: Check if target API requested a retry (e.g. retry 120 sec via header or JSON response)
+                    int retryDelaySec = ParseRetryAfterSeconds(response, body);
+                    if (retryDelaySec > 0)
+                    {
+                        string retryMsg = $"Target API requested retry after {retryDelaySec} seconds. Scheduled one-off Hangfire delayed retry job.";
+                        Console.WriteLine($"[SaviSchedular v2] 🔄 RETRY REQUESTED: Instance {instanceId} | Delay: {retryDelaySec}s | URL: {fullUrl}");
+
+                        LoggingService.CompleteExecutionLog(logId, "RETRY_SCHEDULED", fullUrl,
+                            (int)response.StatusCode, SecureLogger.Sanitize(body), errorMessage: retryMsg, payloadSent: payloadJson);
+
+                        // Schedule Hangfire one-off delayed job after specified retryDelaySec
+                        BackgroundJob.Schedule<SchoolSchedulerService>(s => s.ExecuteJob(instanceId, true), TimeSpan.FromSeconds(retryDelaySec));
+                        return;
+                    }
+
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine($"[SaviSchedular v2] ✓ SUCCESS: Instance {instanceId} | HTTP {(int)response.StatusCode}");
@@ -338,6 +482,44 @@ namespace SaviSchedular.Services
             }
         }
 
+        private static int ParseRetryAfterSeconds(HttpResponseMessage response, string responseBody)
+        {
+            try
+            {
+                // 1. Check HTTP Header "Retry-After"
+                if (response != null && response.Headers != null && response.Headers.RetryAfter != null)
+                {
+                    if (response.Headers.RetryAfter.Delta.HasValue)
+                        return (int)response.Headers.RetryAfter.Delta.Value.TotalSeconds;
+                    if (response.Headers.RetryAfter.Date.HasValue)
+                    {
+                        var diff = response.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
+                        if (diff.TotalSeconds > 0) return (int)diff.TotalSeconds;
+                    }
+                }
+
+                // 2. Check JSON Response Body for retry property keys (e.g. {"retry": 120}, {"retryAfterSeconds": 120})
+                if (!string.IsNullOrWhiteSpace(responseBody) && responseBody.Trim().StartsWith("{"))
+                {
+                    var jobj = Newtonsoft.Json.Linq.JObject.Parse(responseBody);
+                    string[] retryKeys = new[] { "retryAfterSeconds", "retry_after_seconds", "retryAfter", "retry_after", "retryIn", "retry_in", "retry" };
+
+                    foreach (var key in retryKeys)
+                    {
+                        var token = jobj[key] ?? jobj.GetValue(key, StringComparison.OrdinalIgnoreCase);
+                        if (token != null)
+                        {
+                            if (int.TryParse(token.ToString(), out int sec) && sec > 0)
+                                return sec;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return 0;
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // HELPERS
         // ─────────────────────────────────────────────────────────────────────
@@ -354,6 +536,21 @@ namespace SaviSchedular.Services
                         ALTER TABLE [dbo].[SchedulerJobInstances] ADD 
                             [LastStatus] NVARCHAR(50) NULL,
                             [LastRunAt]  DATETIME     NULL;
+                    END
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SchedulerJobInstances') AND name = 'ScheduledTime')
+                    BEGIN
+                        ALTER TABLE [dbo].[SchedulerJobInstances] ADD 
+                            [ScheduledTime] NVARCHAR(10)  NULL,
+                            [FrequencyType] NVARCHAR(30)  NULL,
+                            [ScheduledDays] NVARCHAR(100) NULL,
+                            [DayOfMonth]    NVARCHAR(50)  NULL,
+                            [MonthOfYear]   NVARCHAR(50)  NULL,
+                            [ScheduleRules] NVARCHAR(MAX) NULL,
+                            [CronExpression]NVARCHAR(200) NULL;
+                    END
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SchedulerJobInstances') AND name = 'MonthOfYear')
+                    BEGIN
+                        ALTER TABLE [dbo].[SchedulerJobInstances] ADD [MonthOfYear] NVARCHAR(50) NULL;
                     END";
                 conn.Execute(sql);
             }
@@ -369,7 +566,9 @@ namespace SaviSchedular.Services
                 return conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(@"
                     SELECT
                         ji.InstanceId, ji.ClientId, ji.ProductId, ji.JobTypeId, ji.CustomApiPath, ji.CustomApiToken, ji.PayloadJson,
-                        ji.ScheduledHour, ji.ScheduledMinute, ji.TimeZone, ji.IsActive, ji.RunOnHolidays, ji.MisfireThresholdMinutes, ji.LastStatus, ji.LastRunAt, ji.CreatedAt, ji.UpdatedAt, ji.CreatedBy,
+                        ji.ScheduledHour, ji.ScheduledMinute, ji.ScheduledTime, ji.FrequencyType, ji.ScheduledDays, ji.DayOfMonth, ji.MonthOfYear,
+                        ji.ScheduleRules, ji.CronExpression, ji.TimeZone, ji.IsActive, ji.RunOnHolidays, ji.MisfireThresholdMinutes,
+                        ji.LastStatus, ji.LastRunAt, ji.CreatedAt, ji.UpdatedAt, ji.CreatedBy,
                         pc.ClientName, pc.ExternalId, pc.CustomBaseUrl,
                         p.ProductName, p.ProductCode, p.BaseUrl, p.ApiToken, p.TokenType, p.TokenHeaderName,
                         p.AuthType, p.TokenUrl, p.ClientId AS OAuthClientId, p.ClientSecret, p.RsaPrivateKey, p.RsaPublicKey, p.Audience, p.Issuer,

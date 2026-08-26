@@ -266,7 +266,6 @@
           <input type="text" id="j-code" value="" placeholder="WHATSAPP_ABSENT" style="text-transform:uppercase">
         </div>
       </div>
-
       <div class="form-row">
         <div class="form-group">
           <label for="ext-id">School / External ID *</label>
@@ -278,14 +277,99 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="sch-hour">Scheduled Hour (0-23)</label>
-          <input type="number" id="sch-hour" value="" placeholder="10" min="0" max="23">
+      <div class="form-group">
+        <label for="target-base-url">Target ERP Server Base URL (Optional)</label>
+        <input type="text" id="target-base-url" value="" placeholder="http://localhost:44548">
+        <span style="font-size:11px;color:#64748b;margin-top:2px;display:block;">Server URL of School ERP that Hangfire will hit</span>
+      </div>
+
+      <!-- Schedule Timing & Frequency Settings -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin:16px 0;">
+        <h4 style="font-size:14px; font-weight:700; color:#1e293b; margin:0 0 12px 0;">⏰ Schedule Timing & Frequency</h4>
+        
+        <div class="form-row">
+          <div class="form-group" style="flex:1;">
+            <label for="sch-freq-type">Schedule Frequency *</label>
+            <select id="sch-freq-type" onchange="onFreqTypeChange()" style="width:100%; height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; color:#334155;">
+              <option value="DAILY" selected>Daily (Every Day)</option>
+              <option value="WEEKLY">Weekly (Select Days of Week)</option>
+              <option value="MONTHLY">Monthly (Specific Day of Month)</option>
+              <option value="YEARLY">Yearly / Specific Month & Date (e.g. 15th March)</option>
+              <option value="MULTI_SLOT">Multi-Slot (Day-wise Different Times)</option>
+              <option value="CRON">Custom Cron Expression</option>
+            </select>
+          </div>
+          <div class="form-group" id="sch-time-group" style="flex:1;">
+            <label for="sch-time">Scheduled Time *</label>
+            <input type="time" id="sch-time" value="10:30" style="height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; width:100%;">
+          </div>
         </div>
-        <div class="form-group">
-          <label for="sch-minute">Scheduled Minute (0-59)</label>
-          <input type="number" id="sch-minute" value="" placeholder="30" min="0" max="59">
+
+        <!-- Weekly Days Panel -->
+        <div id="sch-weekly-panel" style="display:none; margin-top:12px;">
+          <label style="font-size:12px; font-weight:600; color:#475569; margin-bottom:6px; display:block;">Select Days of Week:</label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="MON"> Mon</label>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="TUE"> Tue</label>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="WED"> Wed</label>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="THU"> Thu</label>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="FRI"> Fri</label>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="SAT"> Sat</label>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="sch-day-chk" value="SUN"> Sun</label>
+          </div>
+        </div>
+
+        <!-- Monthly Day Panel -->
+        <div id="sch-monthly-panel" style="display:none; margin-top:12px;">
+          <label for="sch-day-month">Day of Month (1-31, comma separated e.g. 1,15)</label>
+          <input type="text" id="sch-day-month" placeholder="1,15">
+        </div>
+
+        <!-- Yearly / Specific Month & Date Panel -->
+        <div id="sch-yearly-panel" style="display:none; margin-top:12px;">
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>Select Month *</label>
+              <select id="sch-month-year" style="width:100%; height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; color:#334155;">
+                <option value="1">January (1)</option>
+                <option value="2">February (2)</option>
+                <option value="3">March (3)</option>
+                <option value="4">April (4)</option>
+                <option value="5">May (5)</option>
+                <option value="6">June (6)</option>
+                <option value="7">July (7)</option>
+                <option value="8">August (8)</option>
+                <option value="9">September (9)</option>
+                <option value="10">October (10)</option>
+                <option value="11">November (11)</option>
+                <option value="12">December (12)</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>Day of Month (1-31) *</label>
+              <input type="number" id="sch-yearly-day" min="1" max="31" value="15" style="height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; width:100%;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Slot Rules Panel -->
+        <div id="sch-multislot-panel" style="display:none; margin-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="font-size:12px; font-weight:700; color:#334155; margin:0;">Day-wise Time Rules:</label>
+            <button type="button" onclick="addMultiSlotRuleRow()" style="background:#e0e7ff; color:#3730a3; border:none; border-radius:4px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer;">
+              ➕ Add Rule
+            </button>
+          </div>
+          <div id="sch-rules-container">
+            <!-- Dynamic rule rows -->
+          </div>
+        </div>
+
+        <!-- Custom Cron Panel -->
+        <div id="sch-cron-panel" style="display:none; margin-top:12px;">
+          <label for="sch-cron-expr">Custom Cron Expression</label>
+          <input type="text" id="sch-cron-expr" placeholder="30 10 * * 1,4">
+          <span style="font-size:11px; color:#64748b;">Format: minute hour day-of-month month day-of-week (e.g. 30 10 * * 1,4 for Mon & Thu at 10:30 AM)</span>
         </div>
       </div>
 
@@ -311,6 +395,63 @@
   </main>
 
   <script>
+    function onFreqTypeChange() {
+      const fType = document.getElementById('sch-freq-type').value;
+      document.getElementById('sch-weekly-panel').style.display = 'none';
+      document.getElementById('sch-monthly-panel').style.display = 'none';
+      document.getElementById('sch-yearly-panel').style.display = 'none';
+      document.getElementById('sch-multislot-panel').style.display = 'none';
+      document.getElementById('sch-cron-panel').style.display = 'none';
+
+      const timeGroup = document.getElementById('sch-time-group');
+      if (fType === 'MULTI_SLOT' || fType === 'CRON') {
+        if (timeGroup) timeGroup.style.display = 'none';
+      } else {
+        if (timeGroup) timeGroup.style.display = 'block';
+      }
+
+      if (fType === 'WEEKLY') {
+        document.getElementById('sch-weekly-panel').style.display = 'block';
+      } else if (fType === 'MONTHLY') {
+        document.getElementById('sch-monthly-panel').style.display = 'block';
+      } else if (fType === 'YEARLY') {
+        document.getElementById('sch-yearly-panel').style.display = 'block';
+      } else if (fType === 'MULTI_SLOT') {
+        document.getElementById('sch-multislot-panel').style.display = 'block';
+        if (document.querySelectorAll('#sch-rules-container .sch-rule-row').length === 0) {
+          addMultiSlotRuleRow('MON', '10:00');
+          addMultiSlotRuleRow('TUE', '11:00');
+        }
+      } else if (fType === 'CRON') {
+        document.getElementById('sch-cron-panel').style.display = 'block';
+      }
+    }
+
+    function addMultiSlotRuleRow(defaultDay = 'MON', defaultTime = '10:00') {
+      const container = document.getElementById('sch-rules-container');
+      const div = document.createElement('div');
+      div.className = 'sch-rule-row';
+      div.style.cssText = 'display:flex; gap:10px; align-items:center; margin-bottom:8px; background:#fff; padding:10px 14px; border-radius:8px; border:1.5px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.04);';
+      div.innerHTML = `
+        <div style="flex:1;">
+          <select class="sch-rule-day" style="width:100%; height:38px; border-radius:6px; border:1.5px solid #cbd5e1; font-size:13px; font-family:inherit; padding:0 10px; background:#fff; color:#1e293b; font-weight:500;">
+            <option value="MON" ${defaultDay==='MON'?'selected':''}>Monday</option>
+            <option value="TUE" ${defaultDay==='TUE'?'selected':''}>Tuesday</option>
+            <option value="WED" ${defaultDay==='WED'?'selected':''}>Wednesday</option>
+            <option value="THU" ${defaultDay==='THU'?'selected':''}>Thursday</option>
+            <option value="FRI" ${defaultDay==='FRI'?'selected':''}>Friday</option>
+            <option value="SAT" ${defaultDay==='SAT'?'selected':''}>Saturday</option>
+            <option value="SUN" ${defaultDay==='SUN'?'selected':''}>Sunday</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <input type="time" class="sch-rule-time" value="${defaultTime}" style="width:100%; height:38px; border-radius:6px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:13px; font-family:inherit; color:#1e293b;">
+        </div>
+        <button type="button" onclick="this.closest('.sch-rule-row').remove()" style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca; border-radius:6px; width:36px; height:38px; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;" title="Remove Rule">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
     function getValOrPlaceholder(id) {
       const el = document.getElementById(id);
       let val = el.value ? el.value.trim() : '';
@@ -322,13 +463,50 @@
 
     function getFormBody() {
       const rawPayload = getValOrPlaceholder('payload-json');
+      const freqType = document.getElementById('sch-freq-type').value || 'DAILY';
+      const scheduledTime = document.getElementById('sch-time').value || '10:30';
+
+      const parts = scheduledTime.split(':');
+      const hour = parseInt(parts[0], 10) || 10;
+      const min = parseInt(parts[1], 10) || 30;
+
+      const selectedDays = Array.from(document.querySelectorAll('.sch-day-chk:checked')).map(c => c.value);
+
+      const multiRules = [];
+      if (freqType === 'MULTI_SLOT') {
+        document.querySelectorAll('#sch-rules-container .sch-rule-row').forEach(row => {
+          const day = row.querySelector('.sch-rule-day').value;
+          const time = row.querySelector('.sch-rule-time').value || '10:00';
+          if (day) multiRules.push({ days: [day], time: time });
+        });
+      }
+
+      let dayOfMonthVal = document.getElementById('sch-day-month').value || undefined;
+      let monthOfYearVal = undefined;
+
+      if (freqType === 'YEARLY') {
+        monthOfYearVal = document.getElementById('sch-month-year').value;
+        dayOfMonthVal = document.getElementById('sch-yearly-day').value || '15';
+      }
+
+      const targetBaseUrl = getValOrPlaceholder('target-base-url');
+
       return {
         productCode: getValOrPlaceholder('p-code').toUpperCase(),
         jobTypeCode: getValOrPlaceholder('j-code').toUpperCase(),
         externalId: getValOrPlaceholder('ext-id'),
         clientName: getValOrPlaceholder('client-name'),
-        scheduledHour: parseInt(getValOrPlaceholder('sch-hour'), 10) || 0,
-        scheduledMinute: parseInt(getValOrPlaceholder('sch-minute'), 10) || 0,
+        baseUrl: targetBaseUrl || undefined,
+        customBaseUrl: targetBaseUrl || undefined,
+        scheduledTime: scheduledTime,
+        scheduledHour: hour,
+        scheduledMinute: min,
+        frequencyType: freqType,
+        scheduledDays: selectedDays.length > 0 ? selectedDays.join(',') : undefined,
+        dayOfMonth: dayOfMonthVal,
+        monthOfYear: monthOfYearVal,
+        scheduleRules: multiRules.length > 0 ? JSON.stringify(multiRules) : undefined,
+        cronExpression: document.getElementById('sch-cron-expr').value || undefined,
         customApiPath: getValOrPlaceholder('api-path') || undefined,
         payloadJson: rawPayload || undefined,
         isActive: true
@@ -350,7 +528,7 @@
           body: JSON.stringify(body)
         });
 
-        const data = await res.json().catch(() => ({}));
+        const data = await res.json().catch(function () { return {}; });
 
         if (res.ok) {
           alertBox.style.background = '#d1fae5';

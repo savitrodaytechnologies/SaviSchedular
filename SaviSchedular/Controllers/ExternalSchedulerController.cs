@@ -165,6 +165,27 @@ namespace SaviSchedular.Controllers
                             new { Name = req.ClientName, CustomBaseUrl = req.CustomBaseUrl, Id = clientId });
                     }
 
+                    // Parse ScheduledTime if provided
+                    int hour = req.ScheduledHour;
+                    int minute = req.ScheduledMinute;
+                    string timeStr = req.ScheduledTime;
+
+                    if (!string.IsNullOrWhiteSpace(timeStr))
+                    {
+                        var parts = timeStr.Trim().Split(':');
+                        if (parts.Length >= 2 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int m))
+                        {
+                            hour = h;
+                            minute = m;
+                        }
+                    }
+                    else
+                    {
+                        timeStr = $"{hour:D2}:{minute:D2}";
+                    }
+
+                    string freqType = !string.IsNullOrWhiteSpace(req.FrequencyType) ? req.FrequencyType.Trim().ToUpper() : "DAILY";
+
                     // Upsert SchedulerJobInstances
                     var existing = conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(
                         "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId",
@@ -176,15 +197,20 @@ namespace SaviSchedular.Controllers
                         instanceId = conn.ExecuteScalar<long>(@"
                             INSERT INTO SchedulerJobInstances
                                 (ClientId, ProductId, JobTypeId, CustomApiPath, CustomApiToken, PayloadJson, ScheduledHour, ScheduledMinute,
+                                 ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear, ScheduleRules, CronExpression,
                                  TimeZone, IsActive, RunOnHolidays, MisfireThresholdMinutes, CreatedAt, UpdatedAt, CreatedBy)
                             VALUES
                                 (@ClientId, @ProductId, @JobTypeId, @CustomApiPath, @CustomApiToken, @PayloadJson, @ScheduledHour, @ScheduledMinute,
+                                 @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear, @ScheduleRules, @CronExpression,
                                  @TimeZone, @IsActive, @RunOnHolidays, 15, @Now, @Now, @By);
                             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
                             new {
                                 ClientId = clientId, ProductId = productId, JobTypeId = jobTypeId,
                                 CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
-                                req.PayloadJson, req.ScheduledHour, req.ScheduledMinute,
+                                req.PayloadJson, ScheduledHour = hour, ScheduledMinute = minute,
+                                ScheduledTime = timeStr, FrequencyType = freqType,
+                                ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
+                                ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
                                 TimeZone = req.TimeZone ?? "India Standard Time",
                                 IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
                                 Now = DateTime.Now, By = apiClient.ClientName
@@ -200,15 +226,24 @@ namespace SaviSchedular.Controllers
                                 PayloadJson     = @PayloadJson,
                                 ScheduledHour   = @Hour,
                                 ScheduledMinute = @Minute,
+                                ScheduledTime   = @ScheduledTime,
+                                FrequencyType   = @FrequencyType,
+                                ScheduledDays   = @ScheduledDays,
+                                DayOfMonth      = @DayOfMonth,
+                                MonthOfYear     = @MonthOfYear,
+                                ScheduleRules   = @ScheduleRules,
+                                CronExpression  = @CronExpression,
                                 IsActive        = @IsActive,
                                 RunOnHolidays   = @RunOnHolidays,
                                 UpdatedAt       = @Now
                             WHERE InstanceId = @Id",
                             new {
                                 CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
-                                PayloadJson = req.PayloadJson, Hour = req.ScheduledHour,
-                                Minute = req.ScheduledMinute, IsActive = req.IsActive,
-                                RunOnHolidays = req.RunOnHolidays ? 1 : 0,
+                                PayloadJson = req.PayloadJson, Hour = hour, Minute = minute,
+                                ScheduledTime = timeStr, FrequencyType = freqType,
+                                ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
+                                ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
+                                IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
                                 Now = DateTime.Now, Id = instanceId
                             });
                     }

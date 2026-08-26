@@ -91,6 +91,13 @@ namespace SaviSchedular.Models
         public string HttpMethod             { get; set; }
         public int    ScheduledHour          { get; set; }
         public int    ScheduledMinute        { get; set; }
+        public string ScheduledTime          { get; set; }
+        public string FrequencyType          { get; set; }
+        public string ScheduledDays          { get; set; }
+        public string DayOfMonth             { get; set; }
+        public string MonthOfYear            { get; set; }
+        public string ScheduleRules          { get; set; }
+        public string CronExpression         { get; set; }
         public string TimeZone               { get; set; }
         public bool   IsActive               { get; set; }
         public bool   RunOnHolidays          { get; set; }
@@ -218,6 +225,13 @@ namespace SaviSchedular.Models
         public string PayloadJson            { get; set; }
         public int    ScheduledHour          { get; set; }
         public int    ScheduledMinute        { get; set; }
+        public string ScheduledTime          { get; set; }
+        public string FrequencyType          { get; set; }
+        public string ScheduledDays          { get; set; }
+        public string DayOfMonth             { get; set; }
+        public string MonthOfYear            { get; set; }
+        public string ScheduleRules          { get; set; }
+        public string CronExpression         { get; set; }
         public string TimeZone               { get; set; }
         public bool   IsActive               { get; set; }
         public bool   RunOnHolidays          { get; set; }
@@ -257,12 +271,25 @@ namespace SaviSchedular.Models
         public string ClientName              { get; set; }
         public int    ScheduledHour           { get; set; }
         public int    ScheduledMinute         { get; set; }
+        public string ScheduledTime          { get; set; }
+        public string FrequencyType          { get; set; }
+        public string ScheduledDays          { get; set; }
+        public string DayOfMonth             { get; set; }
+        public string MonthOfYear            { get; set; }
+        public string ScheduleRules          { get; set; }
+        public string CronExpression         { get; set; }
         public string CustomApiPath           { get; set; }
         public string CustomApiToken          { get; set; }
         public string PayloadJson             { get; set; }
         public bool   IsActive                { get; set; }
         public bool   RunOnHolidays           { get; set; }
         public string TimeZone                { get; set; }
+    }
+
+    public class ScheduleRuleItem
+    {
+        public List<string> Days { get; set; } = new List<string>();
+        public string Time       { get; set; }
     }
 
     public class ExternalTriggerRequest
