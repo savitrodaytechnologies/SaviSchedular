@@ -247,6 +247,8 @@ namespace SaviSchedular.Models
     {
         public string ProductCode             { get; set; }
         public string ProductName             { get; set; }
+        public string BaseUrl                 { get; set; }
+        public string CustomBaseUrl           { get; set; }
         public string JobTypeCode             { get; set; }
         public string JobTypeName             { get; set; }
         public string DefaultApiPath          { get; set; }
@@ -255,8 +257,8 @@ namespace SaviSchedular.Models
         public string ClientName              { get; set; }
         public int    ScheduledHour           { get; set; }
         public int    ScheduledMinute         { get; set; }
-        public string CustomApiPath         { get; set; }
-        public string CustomApiToken        { get; set; }
+        public string CustomApiPath           { get; set; }
+        public string CustomApiToken          { get; set; }
         public string PayloadJson             { get; set; }
         public bool   IsActive                { get; set; }
         public bool   RunOnHolidays           { get; set; }

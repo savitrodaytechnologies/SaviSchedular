@@ -3,23 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>External REST API Tester — SaviSchedular</title>
+  <title>External Schedule Manager — SaviSchedular</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #06b6d4;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
       --success: #10b981;
       --error: #ef4444;
-      --warning: #f59e0b;
+      --radius: 12px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
@@ -32,16 +31,15 @@
       flex-direction: column;
     }
 
-    /* Top Navbar */
+    /* Header */
     .navbar {
-      height: 64px;
-      background: rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(12px);
+      height: 60px;
+      background: #ffffff;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 32px;
+      padding: 0 28px;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -50,188 +48,193 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       text-decoration: none;
       color: var(--text);
     }
 
-    .brand-logo {
+    .brand-icon {
       width: 36px;
       height: 36px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: #fff;
       font-size: 18px;
     }
 
-    .brand-title { font-size: 18px; font-weight: 700; }
-
-    .nav-links { display: flex; gap: 16px; align-items: center; }
+    .brand-title { font-size: 17px; font-weight: 700; }
 
     .nav-btn {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      padding: 8px 14px;
-      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
       transition: all 0.2s;
     }
+    .nav-btn:hover { background: #f1f5f9; color: var(--primary); }
 
-    .nav-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-
-    /* Main Container */
+    /* Layout */
     .container {
-      flex: 1;
-      max-width: 1400px;
+      max-width: 820px;
       width: 100%;
-      margin: 0 auto;
-      padding: 32px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 28px;
-    }
-
-    @media (max-width: 1024px) {
-      .container { grid-template-columns: 1fr; }
+      margin: 28px auto;
+      padding: 0 20px;
     }
 
     .card {
-      background: var(--card-bg);
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: var(--radius);
       padding: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
 
     .card-title {
       font-size: 18px;
       font-weight: 700;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      margin-bottom: 4px;
     }
 
-    .card-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
-
-    /* Key Header Config */
-    .key-box {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      border-radius: 12px;
-      padding: 16px;
+    .card-sub {
+      font-size: 13px;
+      color: var(--text-muted);
       margin-bottom: 20px;
     }
 
-    .form-group { margin-bottom: 16px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    
+    /* Form */
+    .form-group { margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
     label {
       display: block;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: #cbd5e1;
-      margin-bottom: 6px;
+      color: #475569;
+      margin-bottom: 4px;
     }
 
-    input, select, textarea {
+    input, textarea {
       width: 100%;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid var(--border);
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
       border-radius: 8px;
-      padding: 10px 14px;
-      color: var(--text);
-      font-size: 14px;
+      font-size: 13.5px;
       outline: none;
       transition: all 0.2s;
+      background: #fff;
     }
 
-    input:focus, select:focus, textarea:focus {
+    input::placeholder, textarea::placeholder {
+      color: #94a3b8;
+      opacity: 0.85;
+    }
+
+    input:focus, textarea:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
     }
 
-    textarea { font-family: 'Fira Code', monospace; font-size: 13px; resize: vertical; min-height: 90px; }
+    textarea { min-height: 70px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
 
-    /* Templates Grid */
-    .preset-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-    .preset-chip {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      color: #cbd5e1;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .preset-chip:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
-
-    /* Action Buttons */
-    .action-grid {
+    /* Actions */
+    .btn-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 24px;
+      gap: 10px;
+      margin-top: 20px;
     }
 
     .btn {
-      padding: 12px 18px;
-      border-radius: 10px;
+      padding: 11px;
+      border-radius: 8px;
       border: none;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s;
     }
 
-    .btn-primary { background: linear-gradient(135deg, var(--primary), #4338ca); color: #fff; }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
 
-    .btn-secondary { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+    .btn-success { background: #10b981; color: #fff; }
+    .btn-success:hover { background: #059669; }
 
-    .btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
-    .btn-danger:hover { background: var(--error); color: #fff; }
+    .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #e2e8f0; }
 
-    /* Response Display */
-    .response-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
+    .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #dc2626; color: #fff; }
 
-    .status-tag {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      font-family: 'Fira Code', monospace;
-    }
-
-    .status-200 { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
-    .status-401, .status-400, .status-500 { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
-
-    .code-block {
-      background: #090d16;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      font-family: 'Fira Code', monospace;
+    /* Results */
+    .status-banner {
+      padding: 10px 14px;
+      border-radius: 8px;
       font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .banner-idle { background: #f1f5f9; color: var(--text-muted); }
+    .banner-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .banner-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .result-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .result-item:last-child { border-bottom: none; }
+
+    .result-key { color: var(--text-muted); font-weight: 500; }
+    .result-val { font-weight: 600; color: var(--text); }
+
+    pre {
+      background: #0f172a;
       color: #38bdf8;
-      overflow-x: auto;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 12px;
       white-space: pre-wrap;
-      max-height: 400px;
+      max-height: 200px;
       overflow-y: auto;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      z-index: 100;
     }
   </style>
 </head>
@@ -240,272 +243,133 @@
   <!-- Navbar -->
   <header class="navbar">
     <a href="/admin.html" class="brand">
-      <div class="brand-logo">⚡</div>
-      <div class="brand-title">SaviSchedular API Playground</div>
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">SaviSchedular</div>
     </a>
-    <div class="nav-links">
-      <a href="/admin.html" class="nav-btn">🖥️ Admin Console</a>
-      <a href="/api-docs.html" class="nav-btn">📖 API Docs</a>
-    </div>
+    <a href="/admin.html" class="nav-btn">← Admin Console</a>
   </header>
 
-  <!-- Container -->
+  <!-- Main Container -->
   <main class="container">
-    
-    <!-- LEFT PANEL: REQUEST BUILDER -->
     <div class="card">
-      <h3 class="card-title">🚀 External Schedule API Request Builder</h3>
-      <p class="card-subtitle">Use this interactive tool to create or trigger job schedules externally</p>
+      <h2 class="card-title">Schedule Settings</h2>
+      <p class="card-sub">Fill in the details below to create or update a schedule with SaviSchedular API</p>
 
-      <!-- Key Config -->
-      <div class="key-box">
-        <label for="api-key">🔑 X-SaviSchedular-Key (Header)</label>
-        <input type="text" id="api-key" placeholder="Paste your API key (e.g. sk_live_...)" autocomplete="off">
-        <small style="color:var(--text-muted);font-size:11.5px;margin-top:4px;display:block">Get this key from Admin Console ➔ API Keys tab.</small>
-      </div>
-
-      <!-- Presets -->
-      <label>⚡ Quick Templates:</label>
-      <div class="preset-btns">
-        <button class="preset-chip" onclick="applyPreset('absent')">🏫 School Absent Alert</button>
-        <button class="preset-chip" onclick="applyPreset('fee')">💰 Fee Reminder Alert</button>
-        <button class="preset-chip" onclick="applyPreset('viral')">🚀 10XViral Daily Post</button>
-      </div>
-
-      <!-- Form Inputs -->
+      <!-- Inputs -->
       <div class="form-row">
         <div class="form-group">
           <label for="p-code">Product Code *</label>
-          <input type="text" id="p-code" value="SAVISCHOOLS" style="text-transform:uppercase">
+          <input type="text" id="p-code" value="" placeholder="SAVISCHOOLS" style="text-transform:uppercase">
         </div>
         <div class="form-group">
           <label for="j-code">Job Type Code *</label>
-          <input type="text" id="j-code" value="WHATSAPP_ABSENT" style="text-transform:uppercase">
+          <input type="text" id="j-code" value="" placeholder="WHATSAPP_ABSENT" style="text-transform:uppercase">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="ext-id">External / School ID *</label>
-          <input type="text" id="ext-id" value="SCHOOL_101">
+          <label for="ext-id">School / External ID *</label>
+          <input type="text" id="ext-id" value="" placeholder="461">
         </div>
         <div class="form-group">
-          <label for="client-name">School / Client Name</label>
-          <input type="text" id="client-name" value="Delhi Public School">
+          <label for="client-name">School Name</label>
+          <input type="text" id="client-name" value="" placeholder="LD DON SAVI SCHOOL">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="sch-hour">Scheduled Hour (0-23)</label>
-          <input type="number" id="sch-hour" value="10" min="0" max="23">
+          <input type="number" id="sch-hour" value="" placeholder="10" min="0" max="23">
         </div>
         <div class="form-group">
           <label for="sch-minute">Scheduled Minute (0-59)</label>
-          <input type="number" id="sch-minute" value="30" min="0" max="59">
+          <input type="number" id="sch-minute" value="" placeholder="30" min="0" max="59">
         </div>
       </div>
 
       <div class="form-group">
         <label for="api-path">Custom API Path (Optional)</label>
-        <input type="text" id="api-path" placeholder="/api/asapi/schoolanalyticsSchedulers">
+        <input type="text" id="api-path" value="" placeholder="/api/asapi/schoolanalyticsSchedulers">
       </div>
 
       <div class="form-group">
         <label for="payload-json">Payload JSON (Optional)</label>
-        <textarea id="payload-json" placeholder='{"schoolId": 101, "filter": "absent"}'></textarea>
+        <textarea id="payload-json" placeholder='{"schoolId": 461}'></textarea>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="action-grid">
-        <button class="btn btn-primary" onclick="sendCreateSchedule()">
-          <span>➕ Create / Update Schedule</span>
-        </button>
-        <button class="btn btn-secondary" onclick="sendTriggerJob()">
-          <span>▶️ Trigger Job Now</span>
-        </button>
-        <button class="btn btn-secondary" onclick="sendCheckStatus()">
-          <span>📊 Check Job Status</span>
-        </button>
-        <button class="btn btn-danger" onclick="sendDeleteSchedule()">
-          <span>🗑️ Delete Schedule</span>
+      <div id="alert-msg" style="display:none; margin-top:16px; padding:12px 16px; border-radius:8px; font-size:13px; font-weight:600;"></div>
+
+      <!-- Save Button -->
+      <div style="margin-top:20px">
+        <button class="btn btn-primary" style="width:100%" onclick="sendCreateSchedule()">
+          <span>💾 Save Schedule</span>
         </button>
       </div>
     </div>
-
-    <!-- RIGHT PANEL: LIVE CURL & RESPONSE VIEWER -->
-    <div style="display:flex;flex-direction:column;gap:28px">
-      
-      <!-- Generated cURL -->
-      <div class="card">
-        <h3 class="card-title">💻 Live Generated cURL Command</h3>
-        <p class="card-subtitle">Copy and paste this command into Terminal or Postman</p>
-        <div class="code-block" id="curl-output">curl -X POST "http://localhost:44548/api/external/schedule" \
-  -H "Content-Type: application/json" \
-  -H "X-SaviSchedular-Key: YOUR_API_KEY" \
-  -d '{ ... }'</div>
-      </div>
-
-      <!-- HTTP Response Output -->
-      <div class="card" style="flex:1">
-        <div class="response-header">
-          <h3 class="card-title">📡 HTTP Response Output</h3>
-          <span class="status-tag status-200" id="response-status">READY</span>
-        </div>
-        <p class="card-subtitle" id="response-time">Latency: 0 ms</p>
-        <div class="code-block" id="response-body">// Output will appear here after clicking any action button</div>
-      </div>
-
-    </div>
-
   </main>
 
   <script>
-    // Save/load API key
-    const apiKeyInput = document.getElementById('api-key');
-    apiKeyInput.value = localStorage.getItem('savi_tester_api_key') || '';
-    apiKeyInput.addEventListener('input', () => {
-      localStorage.setItem('savi_tester_api_key', apiKeyInput.value.trim());
-      updateLiveCurl();
-    });
-
-    // Inputs listener for live cURL update
-    ['p-code', 'j-code', 'ext-id', 'client-name', 'sch-hour', 'sch-minute', 'api-path', 'payload-json'].forEach(id => {
-      document.getElementById(id).addEventListener('input', updateLiveCurl);
-    });
-
-    function applyPreset(type) {
-      if (type === 'absent') {
-        document.getElementById('p-code').value = 'SAVISCHOOLS';
-        document.getElementById('j-code').value = 'WHATSAPP_ABSENT';
-        document.getElementById('ext-id').value = 'SCHOOL_101';
-        document.getElementById('client-name').value = 'Delhi Public School';
-        document.getElementById('sch-hour').value = '10';
-        document.getElementById('sch-minute').value = '30';
-        document.getElementById('api-path').value = '/api/asapi/schoolanalyticsSchedulers';
-        document.getElementById('payload-json').value = '{"schoolId": 101, "jobType": "ABSENT_ALERT"}';
-      } else if (type === 'fee') {
-        document.getElementById('p-code').value = 'SAVISCHOOLS';
-        document.getElementById('j-code').value = 'FEE_REMINDER';
-        document.getElementById('ext-id').value = 'SCHOOL_205';
-        document.getElementById('client-name').value = 'St. Xavier School';
-        document.getElementById('sch-hour').value = '9';
-        document.getElementById('sch-minute').value = '0';
-        document.getElementById('api-path').value = '/api/asapi/runFeeReminder';
-        document.getElementById('payload-json').value = '{"schoolId": 205, "dueDays": 3}';
-      } else if (type === 'viral') {
-        document.getElementById('p-code').value = '10XVIRAL';
-        document.getElementById('j-code').value = 'DAILY_POST';
-        document.getElementById('ext-id').value = 'CAMPAIGN_888';
-        document.getElementById('client-name').value = 'Nike Campaign';
-        document.getElementById('sch-hour').value = '18';
-        document.getElementById('sch-minute').value = '15';
-        document.getElementById('api-path').value = '/api/viral/post';
-        document.getElementById('payload-json').value = '{"campaignId": 888, "platform": "INSTAGRAM"}';
+    function getValOrPlaceholder(id) {
+      const el = document.getElementById(id);
+      let val = el.value ? el.value.trim() : '';
+      if (!val) {
+        val = el.placeholder || '';
       }
-      updateLiveCurl();
+      return val;
     }
 
     function getFormBody() {
+      const rawPayload = getValOrPlaceholder('payload-json');
       return {
-        productCode: document.getElementById('p-code').value.trim().toUpperCase(),
-        jobTypeCode: document.getElementById('j-code').value.trim().toUpperCase(),
-        externalId: document.getElementById('ext-id').value.trim(),
-        clientName: document.getElementById('client-name').value.trim(),
-        scheduledHour: +document.getElementById('sch-hour').value,
-        scheduledMinute: +document.getElementById('sch-minute').value,
-        customApiPath: document.getElementById('api-path').value.trim() || undefined,
-        payloadJson: document.getElementById('payload-json').value.trim() || undefined,
+        productCode: getValOrPlaceholder('p-code').toUpperCase(),
+        jobTypeCode: getValOrPlaceholder('j-code').toUpperCase(),
+        externalId: getValOrPlaceholder('ext-id'),
+        clientName: getValOrPlaceholder('client-name'),
+        scheduledHour: parseInt(getValOrPlaceholder('sch-hour'), 10) || 0,
+        scheduledMinute: parseInt(getValOrPlaceholder('sch-minute'), 10) || 0,
+        customApiPath: getValOrPlaceholder('api-path') || undefined,
+        payloadJson: rawPayload || undefined,
         isActive: true
       };
     }
 
-    function updateLiveCurl() {
-      const key = apiKeyInput.value.trim() || 'YOUR_API_KEY';
-      const body = getFormBody();
-      const curl = `curl -X POST "${window.location.origin}/api/external/schedule" \\
-  -H "Content-Type: application/json" \\
-  -H "X-SaviSchedular-Key: ${key}" \\
-  -d '${JSON.stringify(body, null, 2)}'`;
-      document.getElementById('curl-output').textContent = curl;
-    }
-
-    async function executeApiCall(method, url, body) {
-      const key = apiKeyInput.value.trim();
-      const statusEl = document.getElementById('response-status');
-      const timeEl   = document.getElementById('response-time');
-      const bodyEl   = document.getElementById('response-body');
-
-      if (!key) {
-        statusEl.className = 'status-tag status-401';
-        statusEl.textContent = 'MISSING KEY';
-        bodyEl.textContent = 'Error: Please enter your X-SaviSchedular-Key in the box above.';
-        return;
-      }
-
-      bodyEl.textContent = 'Sending request...';
-      const startTime = performance.now();
+    async function sendCreateSchedule() {
+      const alertBox = document.getElementById('alert-msg');
+      alertBox.style.display = 'block';
+      alertBox.style.background = '#f1f5f9';
+      alertBox.style.color = '#475569';
+      alertBox.textContent = '⏳ Saving schedule...';
 
       try {
-        const opts = {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-SaviSchedular-Key': key
-          }
-        };
-        if (body) opts.body = JSON.stringify(body);
+        const body = getFormBody();
+        const res = await fetch('/api/external/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
 
-        const response = await fetch(url, opts);
-        const endTime = performance.now();
-        const latency = Math.round(endTime - startTime);
+        const data = await res.json().catch(() => ({}));
 
-        const data = await response.json().catch(() => ({}));
-
-        statusEl.className = `status-tag status-${response.status}`;
-        statusEl.textContent = `${response.status} ${response.statusText || ''}`;
-        timeEl.textContent = `Latency: ${latency} ms`;
-        bodyEl.textContent = JSON.stringify(data, null, 2);
-
+        if (res.ok) {
+          alertBox.style.background = '#d1fae5';
+          alertBox.style.color = '#065f46';
+          alertBox.style.border = '1px solid #a7f3d0';
+          alertBox.textContent = '✅ ' + (data.message || 'Schedule created & registered successfully!');
+        } else {
+          alertBox.style.background = '#fee2e2';
+          alertBox.style.color = '#991b1b';
+          alertBox.style.border = '1px solid #fecaca';
+          alertBox.textContent = '❌ ' + (data.error || 'Failed to save schedule.');
+        }
       } catch (err) {
-        statusEl.className = 'status-tag status-500';
-        statusEl.textContent = 'NETWORK ERROR';
-        bodyEl.textContent = err.message;
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.border = '1px solid #fecaca';
+        alertBox.textContent = '❌ Network Error: Could not connect to Schedular API.';
       }
     }
-
-    function sendCreateSchedule() {
-      executeApiCall('POST', '/api/external/schedule', getFormBody());
-    }
-
-    function sendTriggerJob() {
-      const body = {
-        productCode: document.getElementById('p-code').value.trim().toUpperCase(),
-        jobTypeCode: document.getElementById('j-code').value.trim().toUpperCase(),
-        externalId: document.getElementById('ext-id').value.trim()
-      };
-      executeApiCall('POST', '/api/external/trigger', body);
-    }
-
-    function sendCheckStatus() {
-      const pCode = document.getElementById('p-code').value.trim().toUpperCase();
-      const jCode = document.getElementById('j-code').value.trim().toUpperCase();
-      const extId = document.getElementById('ext-id').value.trim();
-      const url   = `/api/external/status?productCode=${pCode}&jobTypeCode=${jCode}&externalId=${extId}`;
-      executeApiCall('GET', url, null);
-    }
-
-    function sendDeleteSchedule() {
-      const body = {
-        productCode: document.getElementById('p-code').value.trim().toUpperCase(),
-        jobTypeCode: document.getElementById('j-code').value.trim().toUpperCase(),
-        externalId: document.getElementById('ext-id').value.trim()
-      };
-      executeApiCall('DELETE', '/api/external/schedule', body);
-    }
-
-    // Initial update
-    updateLiveCurl();
   </script>
 </body>
 </html>
