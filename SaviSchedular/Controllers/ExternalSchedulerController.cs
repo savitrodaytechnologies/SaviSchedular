@@ -191,75 +191,80 @@ namespace SaviSchedular.Controllers
 
                     string freqType = !string.IsNullOrWhiteSpace(req.FrequencyType) ? req.FrequencyType.Trim().ToUpper() : "DAILY";
 
-                    // Upsert SchedulerJobInstances matching ClientId, JobTypeId, and ScheduledTime
-                    var existing = conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(
-                        "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId AND ScheduledTime=@STime",
-                        new { CId = clientId, JId = jobTypeId, STime = timeStr })
-                        ?? conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(
-                            "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId",
-                            new { CId = clientId, JId = jobTypeId });
+                    // Determine incremented Job Name (_1, _2, etc.)
+                    string baseJobName = "Campaign Social Post";
+                    long reqCampaignId = 0;
 
-                    long instanceId;
-                    if (existing == null)
+                    if (!string.IsNullOrWhiteSpace(req.PayloadJson))
                     {
-                        instanceId = conn.ExecuteScalar<long>(@"
-                            INSERT INTO SchedulerJobInstances
-                                (ClientId, ProductId, JobTypeId, CustomApiPath, CustomApiToken, PayloadJson, ScheduledHour, ScheduledMinute,
-                                 ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear, MultipleTimes, IntervalValue, IntervalUnit, ScheduleRules, CronExpression,
-                                 TimeZone, IsActive, RunOnHolidays, MisfireThresholdMinutes, CreatedAt, UpdatedAt, CreatedBy)
-                            VALUES
-                                (@ClientId, @ProductId, @JobTypeId, @CustomApiPath, @CustomApiToken, @PayloadJson, @ScheduledHour, @ScheduledMinute,
-                                 @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear, @MultipleTimes, @IntervalValue, @IntervalUnit, @ScheduleRules, @CronExpression,
-                                 @TimeZone, @IsActive, @RunOnHolidays, 15, @Now, @Now, @By);
-                            SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
-                            new {
-                                ClientId = clientId, ProductId = productId, JobTypeId = jobTypeId,
-                                CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
-                                req.PayloadJson, ScheduledHour = hour, ScheduledMinute = minute,
-                                ScheduledTime = timeStr, FrequencyType = freqType,
-                                ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
-                                MultipleTimes = req.MultipleTimes, IntervalValue = req.IntervalValue, IntervalUnit = req.IntervalUnit,
-                                ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
-                                TimeZone = req.TimeZone ?? "India Standard Time",
-                                IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
-                                Now = DateTime.Now, By = apiClient.ClientName
-                            });
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(req.PayloadJson);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("jobName", out var jElem) && !string.IsNullOrWhiteSpace(jElem.GetString()))
+                            {
+                                baseJobName = jElem.GetString()!.Trim();
+                            }
+                            else if (root.TryGetProperty("jobTypeName", out var jtElem) && !string.IsNullOrWhiteSpace(jtElem.GetString()))
+                            {
+                                baseJobName = jtElem.GetString()!.Trim();
+                            }
+
+                            if (root.TryGetProperty("campaignId", out var cElem) && cElem.TryGetInt64(out long cId))
+                            {
+                                reqCampaignId = cId;
+                            }
+                        }
+                        catch { }
                     }
-                    else
+
+                    // Strip any trailing _1, _2 suffix from base name to prevent compounding suffixes
+                    baseJobName = System.Text.RegularExpressions.Regex.Replace(baseJobName, @"_\d+$", "");
+
+                    // Count existing instances for this client & job type
+                    int existingCount = conn.ExecuteScalar<int>(
+                        "SELECT COUNT(1) FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId",
+                        new { CId = clientId, JId = jobTypeId });
+
+                    string finalJobName = existingCount > 0 ? $"{baseJobName}_{existingCount}" : baseJobName;
+
+                    // Inject updated jobName into PayloadJson
+                    string finalPayloadJson = req.PayloadJson;
+                    if (!string.IsNullOrWhiteSpace(finalPayloadJson))
                     {
-                        instanceId = existing.InstanceId;
-                        conn.Execute(@"
-                            UPDATE SchedulerJobInstances SET
-                                CustomApiPath   = COALESCE(@CustomApiPath, CustomApiPath),
-                                CustomApiToken  = COALESCE(@CustomApiToken, CustomApiToken),
-                                PayloadJson     = @PayloadJson,
-                                ScheduledHour   = @Hour,
-                                ScheduledMinute = @Minute,
-                                ScheduledTime   = @ScheduledTime,
-                                FrequencyType   = @FrequencyType,
-                                ScheduledDays   = @ScheduledDays,
-                                DayOfMonth      = @DayOfMonth,
-                                MonthOfYear     = @MonthOfYear,
-                                MultipleTimes   = @MultipleTimes,
-                                IntervalValue   = @IntervalValue,
-                                IntervalUnit    = @IntervalUnit,
-                                ScheduleRules   = @ScheduleRules,
-                                CronExpression  = @CronExpression,
-                                IsActive        = @IsActive,
-                                RunOnHolidays   = @RunOnHolidays,
-                                UpdatedAt       = @Now
-                            WHERE InstanceId = @Id",
-                            new {
-                                CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
-                                PayloadJson = req.PayloadJson, Hour = hour, Minute = minute,
-                                ScheduledTime = timeStr, FrequencyType = freqType,
-                                ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
-                                MultipleTimes = req.MultipleTimes, IntervalValue = req.IntervalValue, IntervalUnit = req.IntervalUnit,
-                                ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
-                                IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
-                                Now = DateTime.Now, Id = instanceId
-                            });
+                        try
+                        {
+                            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(finalPayloadJson) ?? new Dictionary<string, object>();
+                            dict["jobName"] = finalJobName;
+                            dict["jobTypeName"] = finalJobName;
+                            finalPayloadJson = System.Text.Json.JsonSerializer.Serialize(dict);
+                        }
+                        catch { }
                     }
+
+                    // Always insert a new Schedule Instance (no duplicate overwrite)
+                    long instanceId = conn.ExecuteScalar<long>(@"
+                        INSERT INTO SchedulerJobInstances
+                            (ClientId, ProductId, JobTypeId, CustomApiPath, CustomApiToken, PayloadJson, ScheduledHour, ScheduledMinute,
+                             ScheduledTime, FrequencyType, ScheduledDays, DayOfMonth, MonthOfYear, MultipleTimes, IntervalValue, IntervalUnit, ScheduleRules, CronExpression,
+                             TimeZone, IsActive, RunOnHolidays, MisfireThresholdMinutes, CreatedAt, UpdatedAt, CreatedBy)
+                        VALUES
+                            (@ClientId, @ProductId, @JobTypeId, @CustomApiPath, @CustomApiToken, @PayloadJson, @ScheduledHour, @ScheduledMinute,
+                             @ScheduledTime, @FrequencyType, @ScheduledDays, @DayOfMonth, @MonthOfYear, @MultipleTimes, @IntervalValue, @IntervalUnit, @ScheduleRules, @CronExpression,
+                             @TimeZone, @IsActive, @RunOnHolidays, 15, @Now, @Now, @By);
+                        SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
+                        new {
+                            ClientId = clientId, ProductId = productId, JobTypeId = jobTypeId,
+                            CustomApiPath = req.CustomApiPath, CustomApiToken = req.CustomApiToken,
+                            PayloadJson = finalPayloadJson, ScheduledHour = hour, ScheduledMinute = minute,
+                            ScheduledTime = timeStr, FrequencyType = freqType,
+                            ScheduledDays = req.ScheduledDays, DayOfMonth = req.DayOfMonth, MonthOfYear = req.MonthOfYear,
+                            MultipleTimes = req.MultipleTimes, IntervalValue = req.IntervalValue, IntervalUnit = req.IntervalUnit,
+                            ScheduleRules = req.ScheduleRules, CronExpression = req.CronExpression,
+                            TimeZone = req.TimeZone ?? "India Standard Time",
+                            IsActive = req.IsActive, RunOnHolidays = req.RunOnHolidays ? 1 : 0,
+                            Now = DateTime.Now, By = apiClient.ClientName
+                        });
 
                     // Sync Hangfire Cron Schedule
                     if (req.IsActive)
