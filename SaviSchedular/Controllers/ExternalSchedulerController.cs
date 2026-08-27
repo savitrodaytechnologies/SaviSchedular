@@ -307,10 +307,10 @@ namespace SaviSchedular.Controllers
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // DELETE /api/external/schedule — Remove a schedule
+        // POST /api/external/schedule/delete
+        // (POST-only — DELETE verb blocked by IIS WebDAV on production)
         // ─────────────────────────────────────────────────────────────────────
-        [AcceptVerbs("GET", "POST", "DELETE")]
-        [Route("schedule")]
+        [HttpPost]
         [Route("schedule/delete")]
         public HttpResponseMessage DeleteSchedule([FromBody] ExternalTriggerRequest req)
         {
@@ -462,9 +462,10 @@ namespace SaviSchedular.Controllers
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // DELETE /api/external/schedule/delete-instance/{instanceId:long}
+        // POST /api/external/schedule/delete-instance/{instanceId:long}
+        // (POST-only — DELETE verb blocked by IIS WebDAV on production)
         // ─────────────────────────────────────────────────────────────────────
-        [AcceptVerbs("GET", "POST", "DELETE"), Route("schedule/delete-instance/{instanceId:long}")]
+        [HttpPost, Route("schedule/delete-instance/{instanceId:long}")]
         public HttpResponseMessage DeleteScheduleInstance(long instanceId)
         {
             var (valid, apiClient) = AuthenticateRequest();

@@ -221,12 +221,11 @@ namespace SaviSchedular.Controllers
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // DELETE /api/scheduler/{instanceId}
+        // POST /api/scheduler/{instanceId}/delete  OR  /api/scheduler/delete/{instanceId}
+        // (Using POST only — DELETE verb is blocked by IIS WebDAV on production)
         // ─────────────────────────────────────────────────────────────────────
-        [AcceptVerbs("GET", "POST", "DELETE")]
-        [Route("{instanceId:long}")]
+        [HttpPost]
         [Route("{instanceId:long}/delete")]
-        [Route("delete/{instanceId:long}")]
         public HttpResponseMessage Delete(long instanceId)
         {
             try
