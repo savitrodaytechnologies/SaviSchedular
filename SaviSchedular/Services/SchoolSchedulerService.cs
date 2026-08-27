@@ -625,6 +625,14 @@ namespace SaviSchedular.Services
                             [MultipleTimes] NVARCHAR(200) NULL,
                             [IntervalValue] INT           NULL,
                             [IntervalUnit]  NVARCHAR(20)  NULL;
+                    END
+                    IF EXISTS (SELECT * FROM sys.key_constraints WHERE name = 'UQ_Client_JobType')
+                    BEGIN
+                        ALTER TABLE [dbo].[SchedulerJobInstances] DROP CONSTRAINT [UQ_Client_JobType];
+                    END
+                    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_Client_JobType' AND object_id = OBJECT_ID('SchedulerJobInstances'))
+                    BEGIN
+                        DROP INDEX [UQ_Client_JobType] ON [dbo].[SchedulerJobInstances];
                     END";
                 conn.Execute(sql);
             }

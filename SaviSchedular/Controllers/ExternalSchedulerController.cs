@@ -241,6 +241,21 @@ namespace SaviSchedular.Controllers
                         catch { }
                     }
 
+                    // Ensure legacy UNIQUE constraint UQ_Client_JobType is dropped if present on database
+                    try
+                    {
+                        conn.Execute(@"
+                            IF EXISTS (SELECT * FROM sys.key_constraints WHERE name = 'UQ_Client_JobType')
+                            BEGIN
+                                ALTER TABLE [dbo].[SchedulerJobInstances] DROP CONSTRAINT [UQ_Client_JobType];
+                            END
+                            IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_Client_JobType' AND object_id = OBJECT_ID('SchedulerJobInstances'))
+                            BEGIN
+                                DROP INDEX [UQ_Client_JobType] ON [dbo].[SchedulerJobInstances];
+                            END");
+                    }
+                    catch { }
+
                     // Always insert a new Schedule Instance (no duplicate overwrite)
                     long instanceId = conn.ExecuteScalar<long>(@"
                         INSERT INTO SchedulerJobInstances
@@ -447,7 +462,7 @@ namespace SaviSchedular.Controllers
         // ─────────────────────────────────────────────────────────────────────
         // DELETE /api/external/schedule/delete-instance/{instanceId:long}
         // ─────────────────────────────────────────────────────────────────────
-        [HttpDelete, Route("schedule/delete-instance/{instanceId:long}")]
+        [HttpDelete, HttpPost, Route("schedule/delete-instance/{instanceId:long}")]
         public HttpResponseMessage DeleteScheduleInstance(long instanceId)
         {
             var (valid, apiClient) = AuthenticateRequest();
