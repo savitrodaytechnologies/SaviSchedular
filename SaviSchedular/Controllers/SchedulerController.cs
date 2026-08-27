@@ -223,7 +223,10 @@ namespace SaviSchedular.Controllers
         // ─────────────────────────────────────────────────────────────────────
         // DELETE /api/scheduler/{instanceId}
         // ─────────────────────────────────────────────────────────────────────
-        [HttpDelete, Route("{instanceId:long}")]
+        [AcceptVerbs("GET", "POST", "DELETE")]
+        [Route("{instanceId:long}")]
+        [Route("{instanceId:long}/delete")]
+        [Route("delete/{instanceId:long}")]
         public HttpResponseMessage Delete(long instanceId)
         {
             try

@@ -309,7 +309,9 @@ namespace SaviSchedular.Controllers
         // ─────────────────────────────────────────────────────────────────────
         // DELETE /api/external/schedule — Remove a schedule
         // ─────────────────────────────────────────────────────────────────────
-        [HttpDelete, Route("schedule")]
+        [AcceptVerbs("GET", "POST", "DELETE")]
+        [Route("schedule")]
+        [Route("schedule/delete")]
         public HttpResponseMessage DeleteSchedule([FromBody] ExternalTriggerRequest req)
         {
             var (valid, apiClient) = AuthenticateRequest();
@@ -462,7 +464,7 @@ namespace SaviSchedular.Controllers
         // ─────────────────────────────────────────────────────────────────────
         // DELETE /api/external/schedule/delete-instance/{instanceId:long}
         // ─────────────────────────────────────────────────────────────────────
-        [HttpDelete, HttpPost, Route("schedule/delete-instance/{instanceId:long}")]
+        [AcceptVerbs("GET", "POST", "DELETE"), Route("schedule/delete-instance/{instanceId:long}")]
         public HttpResponseMessage DeleteScheduleInstance(long instanceId)
         {
             var (valid, apiClient) = AuthenticateRequest();

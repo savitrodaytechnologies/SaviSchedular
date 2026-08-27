@@ -2298,7 +2298,7 @@ async function deleteSchedule(id) {
     confirmClass: 'btn-danger'
   });
   if (!ok) return;
-  try { await api('DELETE', `/api/scheduler/${id}`); toast('Schedule deleted!'); loadSchedules(); }
+  try { await api('POST', `/api/scheduler/${id}/delete`); toast('Schedule deleted!'); loadSchedules(); }
   catch(e) { toast(e.message,'error'); }
 }
 
