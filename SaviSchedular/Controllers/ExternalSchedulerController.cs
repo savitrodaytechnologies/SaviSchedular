@@ -125,13 +125,18 @@ namespace SaviSchedular.Controllers
                             new {
                                 ProductId = productId, Code = jCode,
                                 Name = req.JobTypeName ?? jCode,
-                                DefaultApiPath = req.DefaultApiPath ?? "/api/asapi/schoolanalyticsSchedulers",
+                                DefaultApiPath = req.DefaultApiPath ?? "/api/scheduled-publishing/execution",
                                 HttpMethod = req.HttpMethod ?? "POST"
                             });
                     }
                     else
                     {
                         jobTypeId = jobType.JobTypeId;
+                        if (!string.IsNullOrWhiteSpace(req.DefaultApiPath) && req.DefaultApiPath != jobType.DefaultApiPath)
+                        {
+                            conn.Execute("UPDATE ProductJobTypes SET DefaultApiPath=@DefaultApiPath WHERE JobTypeId=@JId",
+                                new { DefaultApiPath = req.DefaultApiPath, JId = jobTypeId });
+                        }
                     }
 
                     // Upsert ProductClient
@@ -186,10 +191,13 @@ namespace SaviSchedular.Controllers
 
                     string freqType = !string.IsNullOrWhiteSpace(req.FrequencyType) ? req.FrequencyType.Trim().ToUpper() : "DAILY";
 
-                    // Upsert SchedulerJobInstances
+                    // Upsert SchedulerJobInstances matching ClientId, JobTypeId, and ScheduledTime
                     var existing = conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(
-                        "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId",
-                        new { CId = clientId, JId = jobTypeId });
+                        "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId AND ScheduledTime=@STime",
+                        new { CId = clientId, JId = jobTypeId, STime = timeStr })
+                        ?? conn.QueryFirstOrDefault<SchedulerJobInstanceModel>(
+                            "SELECT * FROM SchedulerJobInstances WHERE ClientId=@CId AND JobTypeId=@JId",
+                            new { CId = clientId, JId = jobTypeId });
 
                     long instanceId;
                     if (existing == null)
@@ -338,7 +346,7 @@ namespace SaviSchedular.Controllers
                 {
                     conn.Open();
                     var list = conn.Query(@"
-                        SELECT ji.InstanceId, ji.ScheduledHour, ji.ScheduledMinute, ji.TimeZone,
+                        SELECT ji.InstanceId, ji.ScheduledHour, ji.ScheduledMinute, ji.ScheduledTime, ji.FrequencyType, ji.TimeZone,
                                ji.IsActive, ji.PayloadJson,
                                jt.JobTypeCode, jt.JobTypeName,
                                (SELECT TOP 1 Status FROM SchedulerExecutionLogs
@@ -389,6 +397,152 @@ namespace SaviSchedular.Controllers
 
                     BackgroundJob.Enqueue(() => SchoolSchedulerService.ExecuteJobAsync(instanceId.Value, true));
                     return Request.CreateResponse(HttpStatusCode.OK, new { instanceId, message = "Job enqueued successfully." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new { error = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /api/external/schedule/toggle/{instanceId:long}?isActive=true|false
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpPost, Route("schedule/toggle/{instanceId:long}")]
+        public HttpResponseMessage ToggleScheduleInstance(long instanceId, [FromUri] bool isActive)
+        {
+            var (valid, apiClient) = AuthenticateRequest();
+            if (!valid) return Request.CreateResponse(HttpStatusCode.Unauthorized, new { error = "Invalid or missing X-SaviSchedular-Key." });
+
+            try
+            {
+                using (var conn = new SqlConnection(ConnStr))
+                {
+                    conn.Open();
+                    var updated = conn.Execute(@"
+                        UPDATE SchedulerJobInstances SET IsActive=@IsActive, UpdatedAt=GETDATE() WHERE InstanceId=@InstanceId",
+                        new { IsActive = isActive, InstanceId = instanceId });
+
+                    if (updated == 0)
+                        return Request.CreateResponse(HttpStatusCode.NotFound, new { error = "Schedule instance not found." });
+
+                    if (isActive)
+                        SchoolSchedulerService.RegisterJobByInstanceId(instanceId);
+                    else
+                        SchoolSchedulerService.RemoveJob(instanceId);
+
+                    return Request.CreateResponse(HttpStatusCode.OK, new { success = true, instanceId, isActive });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new { error = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // DELETE /api/external/schedule/delete-instance/{instanceId:long}
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpDelete, Route("schedule/delete-instance/{instanceId:long}")]
+        public HttpResponseMessage DeleteScheduleInstance(long instanceId)
+        {
+            var (valid, apiClient) = AuthenticateRequest();
+            if (!valid) return Request.CreateResponse(HttpStatusCode.Unauthorized, new { error = "Invalid or missing X-SaviSchedular-Key." });
+
+            try
+            {
+                using (var conn = new SqlConnection(ConnStr))
+                {
+                    conn.Open();
+                    var deleted = conn.Execute("DELETE FROM SchedulerJobInstances WHERE InstanceId=@InstanceId", new { InstanceId = instanceId });
+                    if (deleted == 0)
+                        return Request.CreateResponse(HttpStatusCode.NotFound, new { error = "Schedule instance not found." });
+
+                    SchoolSchedulerService.RemoveJob(instanceId);
+                    return Request.CreateResponse(HttpStatusCode.OK, new { success = true, instanceId, message = "Schedule removed." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, new { error = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /api/external/schedule/update-instance
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpPost, Route("schedule/update-instance")]
+        public HttpResponseMessage UpdateScheduleInstance([FromBody] ExternalInstanceUpdateRequest req)
+        {
+            var (valid, apiClient) = AuthenticateRequest();
+            if (!valid) return Request.CreateResponse(HttpStatusCode.Unauthorized, new { error = "Invalid or missing X-SaviSchedular-Key." });
+
+            if (req == null || req.InstanceId <= 0)
+                return Request.CreateResponse(HttpStatusCode.BadRequest, new { error = "InstanceId is required." });
+
+            try
+            {
+                using (var conn = new SqlConnection(ConnStr))
+                {
+                    conn.Open();
+
+                    int hour = 0, minute = 0;
+                    string timeStr = req.ScheduledTime;
+                    if (!string.IsNullOrWhiteSpace(timeStr))
+                    {
+                        var parts = timeStr.Trim().Split(':');
+                        if (parts.Length >= 2 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int m))
+                        {
+                            hour = h;
+                            minute = m;
+                        }
+                    }
+
+                    string freqType = !string.IsNullOrWhiteSpace(req.FrequencyType) ? req.FrequencyType.Trim().ToUpper() : "DAILY";
+
+                    var updated = conn.Execute(@"
+                        UPDATE SchedulerJobInstances SET
+                            ScheduledHour   = @Hour,
+                            ScheduledMinute = @Minute,
+                            ScheduledTime   = @Time,
+                            FrequencyType   = @Freq,
+                            ScheduledDays   = @Days,
+                            DayOfMonth      = @Dom,
+                            MonthOfYear     = @Moy,
+                            MultipleTimes   = @Mtimes,
+                            IntervalValue   = @Ival,
+                            IntervalUnit    = @Iunit,
+                            TimeZone        = COALESCE(@TZ, TimeZone),
+                            PayloadJson     = COALESCE(@Payload, PayloadJson),
+                            IsActive        = @IsActive,
+                            UpdatedAt       = GETDATE()
+                        WHERE InstanceId = @InstanceId",
+                        new {
+                            Hour = hour,
+                            Minute = minute,
+                            Time = timeStr,
+                            Freq = freqType,
+                            Days = req.ScheduledDays,
+                            Dom = req.DayOfMonth,
+                            Moy = req.MonthOfYear,
+                            Mtimes = req.MultipleTimes,
+                            Ival = req.IntervalValue,
+                            Iunit = req.IntervalUnit,
+                            TZ = req.TimeZone,
+                            Payload = req.PayloadJson,
+                            IsActive = req.IsActive,
+                            InstanceId = req.InstanceId
+                        });
+
+                    if (updated == 0)
+                        return Request.CreateResponse(HttpStatusCode.NotFound, new { error = "Schedule instance not found." });
+
+                    if (req.IsActive)
+                        SchoolSchedulerService.RegisterJobByInstanceId(req.InstanceId);
+                    else
+                        SchoolSchedulerService.RemoveJob(req.InstanceId);
+
+                    return Request.CreateResponse(HttpStatusCode.OK, new { success = true, instanceId = req.InstanceId, message = "Schedule instance updated successfully." });
                 }
             }
             catch (Exception ex)

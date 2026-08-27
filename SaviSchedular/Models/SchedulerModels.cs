@@ -308,6 +308,22 @@ namespace SaviSchedular.Models
         public string ExternalId  { get; set; }
     }
 
+    public class ExternalInstanceUpdateRequest
+    {
+        public long InstanceId { get; set; }
+        public string ScheduledTime { get; set; }
+        public string FrequencyType { get; set; }
+        public string ScheduledDays { get; set; }
+        public string DayOfMonth { get; set; }
+        public string MonthOfYear { get; set; }
+        public string MultipleTimes { get; set; }
+        public int? IntervalValue { get; set; }
+        public string IntervalUnit { get; set; }
+        public string TimeZone { get; set; }
+        public string PayloadJson { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // RESPONSE / DTO MODELS
     // ═══════════════════════════════════════════════════════════════
