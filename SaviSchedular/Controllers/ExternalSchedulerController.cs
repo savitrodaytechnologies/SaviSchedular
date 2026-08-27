@@ -191,7 +191,7 @@ namespace SaviSchedular.Controllers
 
                     string freqType = !string.IsNullOrWhiteSpace(req.FrequencyType) ? req.FrequencyType.Trim().ToUpper() : "DAILY";
 
-                    // Determine incremented Job Name (_1, _2, etc.)
+                    // Determine incremented Job Name (_1, _2, etc.) using Newtonsoft.Json
                     string baseJobName = "Campaign Social Post";
                     long reqCampaignId = 0;
 
@@ -199,18 +199,17 @@ namespace SaviSchedular.Controllers
                     {
                         try
                         {
-                            using var doc = System.Text.Json.JsonDocument.Parse(req.PayloadJson);
-                            var root = doc.RootElement;
-                            if (root.TryGetProperty("jobName", out var jElem) && !string.IsNullOrWhiteSpace(jElem.GetString()))
+                            var jsonObj = Newtonsoft.Json.Linq.JObject.Parse(req.PayloadJson);
+                            if (jsonObj["jobName"] != null && !string.IsNullOrWhiteSpace(jsonObj["jobName"].ToString()))
                             {
-                                baseJobName = jElem.GetString()!.Trim();
+                                baseJobName = jsonObj["jobName"].ToString().Trim();
                             }
-                            else if (root.TryGetProperty("jobTypeName", out var jtElem) && !string.IsNullOrWhiteSpace(jtElem.GetString()))
+                            else if (jsonObj["jobTypeName"] != null && !string.IsNullOrWhiteSpace(jsonObj["jobTypeName"].ToString()))
                             {
-                                baseJobName = jtElem.GetString()!.Trim();
+                                baseJobName = jsonObj["jobTypeName"].ToString().Trim();
                             }
 
-                            if (root.TryGetProperty("campaignId", out var cElem) && cElem.TryGetInt64(out long cId))
+                            if (jsonObj["campaignId"] != null && long.TryParse(jsonObj["campaignId"].ToString(), out long cId))
                             {
                                 reqCampaignId = cId;
                             }
@@ -234,10 +233,10 @@ namespace SaviSchedular.Controllers
                     {
                         try
                         {
-                            var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(finalPayloadJson) ?? new Dictionary<string, object>();
-                            dict["jobName"] = finalJobName;
-                            dict["jobTypeName"] = finalJobName;
-                            finalPayloadJson = System.Text.Json.JsonSerializer.Serialize(dict);
+                            var jsonObj = Newtonsoft.Json.Linq.JObject.Parse(finalPayloadJson);
+                            jsonObj["jobName"] = finalJobName;
+                            jsonObj["jobTypeName"] = finalJobName;
+                            finalPayloadJson = jsonObj.ToString(Newtonsoft.Json.Formatting.None);
                         }
                         catch { }
                     }
@@ -282,7 +281,7 @@ namespace SaviSchedular.Controllers
                         externalId = req.ExternalId,
                         scheduledTime = $"{req.ScheduledHour:D2}:{req.ScheduledMinute:D2}",
                         isActive = req.IsActive,
-                        message = existing == null ? "Job and Schedule created & registered in Hangfire successfully!" : "Job and Schedule updated in Hangfire successfully!"
+                        message = "Job and Schedule created & registered in Hangfire successfully!"
                     });
                 }
             }
