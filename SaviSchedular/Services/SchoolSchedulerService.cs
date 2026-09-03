@@ -291,47 +291,24 @@ namespace SaviSchedular.Services
                 // ── Step 4: Scheduled Run Checks (scheduled runs only) ─────────
                 if (!isManual)
                 {
-                    var tz       = SafeGetTimezone(inst.TimeZone);
-                    var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-                    string freq  = (inst.FrequencyType ?? "DAILY").Trim().ToUpper();
+                    string freq = (inst.FrequencyType ?? "DAILY").Trim().ToUpper();
 
-                    // ── Misfire Check ─────────────────────────────────────────
-                    // TWICE_DAILY / INTERVAL / MULTI_SLOT fire multiple times → 
-                    // check misfire against the closest scheduled time, not fixed one.
-                    bool skipMisfireCheck = (freq == "TWICE_DAILY" || freq == "INTERVAL" || 
-                                             freq == "MULTI_SLOT"  || freq == "CRON");
-
-                    if (!skipMisfireCheck)
-                    {
-                        var scheduled = nowLocal.Date.AddHours(inst.ScheduledHour).AddMinutes(inst.ScheduledMinute);
-                        double gapMin = Math.Abs((nowLocal - scheduled).TotalMinutes);
-
-                        if (gapMin > 3)
-                        {
-                            Console.WriteLine($"[SaviSchedular v2] MISFIRE SKIP: Instance {instanceId}. Gap {gapMin:F1}m.");
-                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: $"MISFIRE (Gap {gapMin:F1}m)");
-                            return;
-                        }
-                    }
-
-                    // ── Duplicate Run Check ───────────────────────────────────
-                    // For TWICE_DAILY / INTERVAL: allow multiple runs per day.
-                    // Check if already ran within the last N minutes (slot window) instead of "today".
+                    // ── Duplicate Run Check (Prevent re-running only if already SUCCESS) ──
                     using (var conn = new SqlConnection(SchedConn))
                     {
-                        bool alreadyRan = false;
+                        bool alreadySuccess = false;
 
-                        if (freq == "TWICE_DAILY" || freq == "INTERVAL" || freq == "MULTI_SLOT")
+                        if (freq == "TWICE_DAILY" || freq == "INTERVAL" || freq == "MULTI_SLOT" || freq == "HOURLY")
                         {
-                            // Window = 30 minutes around this slot — prevent exact-duplicate triggers only
-                            DateTime windowStart = DateTime.Now.AddMinutes(-30);
+                            // Window = 15 minutes around this slot — prevent exact duplicate triggers if already SUCCESS
+                            DateTime windowStart = DateTime.Now.AddMinutes(-15);
                             DateTime windowEnd   = DateTime.Now.AddMinutes(5);
 
-                            alreadyRan = conn.ExecuteScalar<bool>(@"
+                            alreadySuccess = conn.ExecuteScalar<bool>(@"
                                 SELECT CASE WHEN EXISTS (
                                     SELECT 1 FROM SchedulerExecutionLogs
                                     WHERE InstanceId = @InstanceId
-                                      AND Status IN ('SUCCESS', 'RUNNING')
+                                      AND Status = 'SUCCESS'
                                       AND StartedAt >= @WindowStart AND StartedAt < @WindowEnd
                                       AND LogId != @CurrentLogId
                                 ) THEN 1 ELSE 0 END",
@@ -339,25 +316,25 @@ namespace SaviSchedular.Services
                         }
                         else
                         {
-                            // For DAILY / WEEKLY / MONTHLY etc. — allow only once per day
+                            // For DAILY / WEEKLY / MONTHLY / YEARLY / ONETIME etc. — allow only once if already SUCCESS today
                             DateTime todayStart = DateTime.Now.Date;
                             DateTime todayEnd   = todayStart.AddDays(1);
 
-                            alreadyRan = conn.ExecuteScalar<bool>(@"
+                            alreadySuccess = conn.ExecuteScalar<bool>(@"
                                 SELECT CASE WHEN EXISTS (
                                     SELECT 1 FROM SchedulerExecutionLogs
                                     WHERE InstanceId = @InstanceId
-                                      AND Status IN ('SUCCESS', 'RUNNING')
+                                      AND Status = 'SUCCESS'
                                       AND StartedAt >= @TodayStart AND StartedAt < @TodayEnd
                                       AND LogId != @CurrentLogId
                                 ) THEN 1 ELSE 0 END",
                                 new { InstanceId = instanceId, TodayStart = todayStart, TodayEnd = todayEnd, CurrentLogId = logId });
                         }
 
-                        if (alreadyRan)
+                        if (alreadySuccess)
                         {
-                            Console.WriteLine($"[SaviSchedular v2] DUPLICATE SKIP: Instance {instanceId} (freq={freq}).");
-                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "DUPLICATE_RUN");
+                            Console.WriteLine($"[SaviSchedular v2] ALREADY SUCCESS TODAY: Instance {instanceId} (freq={freq}). Aborting duplicate run.");
+                            LoggingService.CompleteExecutionLog(logId, "SKIPPED", skipReason: "ALREADY_SUCCESS_TODAY");
                             return;
                         }
                     }
@@ -406,7 +383,8 @@ namespace SaviSchedular.Services
                     string noTokenError = "Security Violation: API execution blocked because no authentication token or security credentials were provided.";
                     Console.WriteLine($"[SaviSchedular v2] ✗ REJECTED: Instance {instanceId} | {noTokenError}");
                     LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl, 401, null, noTokenError, payloadSent: payloadJson);
-                    throw new Exception(noTokenError);
+                    TrySendFailureEmail(inst, fullUrl, noTokenError);
+                    return;
                 }
 
                 // Enforce HTTPS check for remote URLs when using JWT/OAuth2 authentication
@@ -418,10 +396,11 @@ namespace SaviSchedular.Services
                     string httpWarning = $"Security Error: HTTPS is enforced for JWT authentication. Target URL '{fullUrl}' is insecure.";
                     Console.WriteLine($"[SaviSchedular v2] ✗ REJECTED: Instance {instanceId} | {httpWarning}");
                     LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl, 400, null, httpWarning, payloadSent: payloadJson);
-                    throw new Exception(httpWarning);
+                    TrySendFailureEmail(inst, fullUrl, httpWarning);
+                    return;
                 }
 
-                // ── Step 8: Make HTTP call with 401 Single Retry ─────────────
+                // ── Step 8: Make HTTP call with Max 2 Retries ─────────────────
                 Console.WriteLine(
                     $"[SaviSchedular v2] → [{inst.ProductCode}] {inst.ClientName} ({inst.ExternalId}) | {inst.JobTypeCode} | {fullUrl}");
 
@@ -446,8 +425,13 @@ namespace SaviSchedular.Services
 
                     attachAuthHeader();
 
-                    HttpResponseMessage response;
+                    HttpResponseMessage response = null;
+                    string body = null;
+                    string lastError = null;
                     string httpMethod = inst.HttpMethod?.ToUpperInvariant() ?? "POST";
+                    int maxRetries = 2; // Allow up to 2 retries on failure (total 3 attempts max)
+                    int attempt = 0;
+                    bool isSuccess = false;
 
                     Func<Task<HttpResponseMessage>> executeHttpCall = async () =>
                     {
@@ -468,74 +452,92 @@ namespace SaviSchedular.Services
                         }
                     };
 
-                    response = await executeHttpCall();
-
-                    // 401 Single Retry Logic: Regenerate Token / Invalidate RAM Token -> Retry ONCE
-                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    while (attempt <= maxRetries && !isSuccess)
                     {
-                        Console.WriteLine($"[SaviSchedular v2] ⚠️ 401 Unauthorized received for Instance {instanceId}. Regenerating fresh token and retrying ONCE...");
-                        
-                        if (authType == "RS256" && !string.IsNullOrWhiteSpace(inst.RsaPrivateKey))
+                        attempt++;
+                        try
                         {
-                            string decryptedRsaPrivate = EncryptionHelper.Decrypt(inst.RsaPrivateKey);
-                            token = Rs256JwtService.GenerateRs256JwtToken(
-                                decryptedRsaPrivate,
-                                inst.Issuer ?? "SaviScheduler",
-                                inst.Audience ?? inst.ProductCode ?? "SaviSchools",
-                                expiryMinutes: 2);
-                        }
-                        else
-                        {
-                            JwtTokenManager.InvalidateToken(inst.ProductId);
-                            token = await JwtTokenManager.GetValidTokenInternalAsync(
-                                inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
-                                inst.CustomApiToken ?? inst.ApiToken);
-                        }
+                            response = await executeHttpCall();
 
-                        attachAuthHeader();
-                        response = await executeHttpCall();
+                            // 401 Unauthorized handling (token refresh attempt)
+                            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                            {
+                                Console.WriteLine($"[SaviSchedular v2] ⚠️ 401 Unauthorized for Instance {instanceId} (Attempt {attempt}). Refreshing token...");
+                                if (authType == "RS256" && !string.IsNullOrWhiteSpace(inst.RsaPrivateKey))
+                                {
+                                    string decryptedRsaPrivate = EncryptionHelper.Decrypt(inst.RsaPrivateKey);
+                                    token = Rs256JwtService.GenerateRs256JwtToken(
+                                        decryptedRsaPrivate,
+                                        inst.Issuer ?? "SaviScheduler",
+                                        inst.Audience ?? inst.ProductCode ?? "SaviSchools",
+                                        expiryMinutes: 2);
+                                }
+                                else
+                                {
+                                    JwtTokenManager.InvalidateToken(inst.ProductId);
+                                    token = await JwtTokenManager.GetValidTokenInternalAsync(
+                                        inst.ProductId, inst.TokenUrl, inst.OAuthClientId, decryptedSecret,
+                                        inst.CustomApiToken ?? inst.ApiToken);
+                                }
+                                attachAuthHeader();
+                                response = await executeHttpCall();
+                            }
 
-                        if (response.StatusCode == HttpStatusCode.Unauthorized)
+                            body = await response.Content.ReadAsStringAsync();
+
+                            // Check dynamic retry-after header if API specifies it
+                            int retryDelaySec = ParseRetryAfterSeconds(response, body);
+                            if (retryDelaySec > 0 && attempt <= maxRetries)
+                            {
+                                string retryMsg = $"Target API requested retry after {retryDelaySec}s (Attempt {attempt}/{maxRetries + 1}).";
+                                Console.WriteLine($"[SaviSchedular v2] 🔄 RETRY REQUESTED: Instance {instanceId} | {retryMsg}");
+                                await Task.Delay(TimeSpan.FromSeconds(Math.Min(retryDelaySec, 30)));
+                                continue;
+                            }
+
+                            if (response.IsSuccessStatusCode)
+                            {
+                                isSuccess = true;
+                                break;
+                            }
+                            else
+                            {
+                                lastError = $"HTTP {(int)response.StatusCode}: {SecureLogger.Sanitize(body)}";
+                                Console.WriteLine($"[SaviSchedular v2] ⚠️ Attempt {attempt} failed for Instance {instanceId}: {lastError}");
+                                
+                                if (attempt <= maxRetries)
+                                {
+                                    Console.WriteLine($"[SaviSchedular v2] 🔄 Retrying Instance {instanceId} in 5s (Attempt {attempt + 1}/{maxRetries + 1})...");
+                                    await Task.Delay(5000);
+                                }
+                            }
+                        }
+                        catch (Exception reqEx)
                         {
-                            string authFailed = "Authentication Failed: 401 Unauthorized returned twice. Retry stopped to prevent DoS loop.";
-                            Console.WriteLine($"[SaviSchedular v2] ✗ STOPPED: Instance {instanceId} | {authFailed}");
-                            LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl, (int)response.StatusCode, "Authorization: ********", authFailed, payloadSent: payloadJson);
-                            TrySendFailureEmail(inst, fullUrl, authFailed);
-                            throw new Exception(authFailed);
+                            lastError = reqEx.Message;
+                            Console.WriteLine($"[SaviSchedular v2] ⚠️ Exception during attempt {attempt} for Instance {instanceId}: {reqEx.Message}");
+                            if (attempt <= maxRetries)
+                            {
+                                Console.WriteLine($"[SaviSchedular v2] 🔄 Retrying Instance {instanceId} in 5s (Attempt {attempt + 1}/{maxRetries + 1})...");
+                                await Task.Delay(5000);
+                            }
                         }
                     }
 
-                    string body = await response.Content.ReadAsStringAsync();
-
-                    // Dynamic Retry Logic: Check if target API requested a retry (e.g. retry 120 sec via header or JSON response)
-                    int retryDelaySec = ParseRetryAfterSeconds(response, body);
-                    if (retryDelaySec > 0)
+                    if (isSuccess && response != null && response.IsSuccessStatusCode)
                     {
-                        string retryMsg = $"Target API requested retry after {retryDelaySec} seconds. Scheduled one-off Hangfire delayed retry job.";
-                        Console.WriteLine($"[SaviSchedular v2] 🔄 RETRY REQUESTED: Instance {instanceId} | Delay: {retryDelaySec}s | URL: {fullUrl}");
-
-                        LoggingService.CompleteExecutionLog(logId, "RETRY_SCHEDULED", fullUrl,
-                            (int)response.StatusCode, SecureLogger.Sanitize(body), errorMessage: retryMsg, payloadSent: payloadJson);
-
-                        // Schedule Hangfire one-off delayed job after specified retryDelaySec
-                        BackgroundJob.Schedule(() => ExecuteJobAsync(instanceId, true), TimeSpan.FromSeconds(retryDelaySec));
-                        return;
-                    }
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine($"[SaviSchedular v2] ✓ SUCCESS: Instance {instanceId} | HTTP {(int)response.StatusCode}");
+                        Console.WriteLine($"[SaviSchedular v2] ✓ SUCCESS: Instance {instanceId} | HTTP {(int)response.StatusCode} (Attempt {attempt})");
                         LoggingService.CompleteExecutionLog(logId, "SUCCESS", fullUrl,
                             (int)response.StatusCode, SecureLogger.Sanitize(body), payloadSent: payloadJson);
                     }
                     else
                     {
-                        string err = $"HTTP {(int)response.StatusCode}: {SecureLogger.Sanitize(body)}";
-                        Console.WriteLine($"[SaviSchedular v2] ✗ FAILED: Instance {instanceId} | {err}");
+                        int statusCode = response != null ? (int)response.StatusCode : 500;
+                        string err = lastError ?? "API call failed after retries";
+                        Console.WriteLine($"[SaviSchedular v2] ✗ FAILED after {attempt} attempts: Instance {instanceId} | {err}");
                         LoggingService.CompleteExecutionLog(logId, "FAILED", fullUrl,
-                            (int)response.StatusCode, SecureLogger.Sanitize(body), err, payloadSent: payloadJson);
+                            statusCode, body != null ? SecureLogger.Sanitize(body) : null, err, payloadSent: payloadJson);
                         TrySendFailureEmail(inst, fullUrl, err);
-                        throw new Exception($"API call failed — {err}");
                     }
                 }
             }
@@ -546,7 +548,6 @@ namespace SaviSchedular.Services
                     LoggingService.CompleteExecutionLog(logId, "FAILED", errorMessage: ex.Message);
                 if (inst != null && !ex.Message.StartsWith("API call failed —"))
                     TrySendFailureEmail(inst, null, ex.Message);
-                throw; // Hangfire retry
             }
         }
 
